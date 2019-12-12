@@ -27,6 +27,8 @@ extern void fillResp(RipPacket* resp, uint32_t dst_addr);
 extern void updateRouterTable(RipEntry entry, uint32_t if_index);
 extern void DEBUG_printRouterTable();
 extern int getIndex(uint32_t addr, uint32_t len);
+extern int getUDPChecksum(uint8_t* pac);
+
 
 uint8_t packet[2048];
 uint8_t output[2048];
@@ -40,7 +42,6 @@ in_addr_t addrs[N_IFACE_ON_BOARD] = {0x0203a8c0, 0x0104a8c0, 0x0102000a, 0x01030
 macaddr_t MulticastMac = {0x01, 0x00, 0x5e, 0x00, 0x00, 0x09}; //idk big endian or ... fuck
 
 void getIPChecksum(uint8_t* pac);
-int getUDPChecksum(uint8_t* pac);
 void IPHeader(in_addr_t src_addr, in_addr_t dst_addr, uint16_t totalLength, uint8_t protocol, uint8_t* pac);
 int ICMPTimeExceeded(in_addr_t src_addr, in_addr_t dst_addr);
 int ICMPDestNetworkUnreachable(in_addr_t src_addr, in_addr_t dst_addr);
@@ -357,34 +358,6 @@ void getIPChecksum(uint8_t* pac) {
 	IPchecksum = ~IPchecksum;
 	pac[10] = IPchecksum >> 8;
 	pac[11] = IPchecksum;
-}
-
-
-int getUDPChecksum(uint8_t* pac) {
-	return 0;////fuck UDP checksum
-	int UDPchecksum = 0;
-	uint16_t UDPLength = (((int)pac[24]) << 8) + pac[25];
-	for(int i = 12;i < 20;i++) {
-		if(i % 2 == 0) {
-			UDPchecksum += ((int)pac[i]) << 8;
-		} else {
-			UDPchecksum += (int)pac[i];
-		}
-	}
-	UDPchecksum += protUDP;
-	UDPchecksum += UDPLength;
-	//UDP header
-	for(int i = 20;i < 26;i++) {
-		if(i % 2 == 0) {
-			UDPchecksum += ((int)pac[i]) << 8;
-		} else {
-			UDPchecksum += (int)pac[i];
-		}
-	}
-	UDPchecksum = (UDPchecksum >> 16) + (UDPchecksum & 0xffff);
-	UDPchecksum += (UDPchecksum >> 16);
-	UDPchecksum = ~UDPchecksum;
-	return UDPchecksum;
 }
 
 

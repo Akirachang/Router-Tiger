@@ -25,3 +25,30 @@ bool validateIPChecksum(uint8_t *packet, size_t len) {
     return true;
   return false;
 }
+
+int getUDPChecksum(uint8_t* pac) {
+	return 0;////fuck UDP checksum
+	int UDPchecksum = 0;
+	uint16_t UDPLength = (((int)pac[24]) << 8) + pac[25];
+	for(int i = 12;i < 20;i++) {
+		if(i % 2 == 0) {
+			UDPchecksum += ((int)pac[i]) << 8;
+		} else {
+			UDPchecksum += (int)pac[i];
+		}
+	}
+	UDPchecksum += protUDP;
+	UDPchecksum += UDPLength;
+	//UDP header
+	for(int i = 20;i < 26;i++) {
+		if(i % 2 == 0) {
+			UDPchecksum += ((int)pac[i]) << 8;
+		} else {
+			UDPchecksum += (int)pac[i];
+		}
+	}
+	UDPchecksum = (UDPchecksum >> 16) + (UDPchecksum & 0xffff);
+	UDPchecksum += (UDPchecksum >> 16);
+	UDPchecksum = ~UDPchecksum;
+	return UDPchecksum;
+}
