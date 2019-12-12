@@ -28,63 +28,47 @@ std::vector<RoutingTableEntry> routers;
 vector<RoutingTableEntry> getRTE(){
   return routers;
 }
+string toHex(int addr){
+      stringstream my_ss;
+      my_ss << hex << addr;
+      string tempStr = my_ss.str();
+      return tempStr;
+}
 
-int getIndex(uint32_t addr, uint32_t len){
-  int index = -1;
-  for(int i = 0;i < routers.size();i++) {
-    if(routers.at(i).addr == addr && routers.at(i).len == len)
+int isExist(uint32_t addr, uint32_t len){
+  int index=-1;
+  for(int i=0;i<routers.size();i++){
+    if(routers.at(i).addr==addr && routers.at(i).len==len)
       return i;
   }
   return index;
+
 }
 
-int match(uint32_t addr) {
+int isExist2(uint32_t addr){
+  int index=-1;
+  for(int i=0;i<routers.size();i++){
+    if(routers.at(i).addr==addr)
+      return i;
+  }
+  return index;
 
-  int maxlen = -1;
-  int maxindex=-1;
-
-  for(int i = 0;i < routers.size();i++) {
-      RoutingTableEntry rt = routers.at(i);
-
-      int len = (int)rt.len;
-      uint32_t mask = 0;
-      for(uint32_t j = 0;j < len;j++) {
-        mask = (mask << 1) + 1;
-      }
-
-      if((addr & mask) == (rt.addr & mask)) {
-        if(maxlen < len) {
-          maxlen = len;
-          maxindex = i;
-        }
-      }
-    }
-
-  return maxindex;
 }
 
-
-/**
- * @brief 插入/删除一条路由表表项
- * @param insert 如果要插入则为 true ，要删除则为 false
- * @param entry 要插入/删除的表项
- * 
- * 插入时如果已经存在一条 addr 和 len 都相同的表项，则替换掉原有的。
- * 删除时按照 addr 和 len 匹配。
- */
 void update(bool insert, RoutingTableEntry entry) {
   // TODO:
-  if(insert) {
-    int index = getIndex(entry.addr,entry.len);
-    if(index == -1)
+  if(insert){
+    int index=isExist(entry.addr,entry.len);
+    if(index==-1){ // does not exist, just insert!
       routers.push_back(entry);
-    else {
-      routers.at(index).if_index = entry.if_index;
-      routers.at(index).nexthop = entry.nexthop;
-      routers.at(index).metric = entry.metric;
     }
-  } else {
-    int index = getIndex(entry.addr,entry.len);
+    else{
+      routers.at(index).if_index=entry.if_index;
+      routers.at(index).nexthop=entry.nexthop;
+    }
+  }
+  else{
+    int index=isExist(entry.addr,entry.len);
     routers.erase(routers.begin() + index);
   }
 }
@@ -96,13 +80,59 @@ void update(bool insert, RoutingTableEntry entry) {
  * @param if_index 如果查询到目标，把表项的 if_index 写入
  * @return 查到则返回 true ，没查到则返回 false
  */
+
+int max_prefix(uint32_t addr){
+
+  int strAdd_toint=(int) addr;
+  string strAdd=toHex(strAdd_toint);      
+
+  int max=-1;
+  int maxindex=-1;
+  for(int i=0;i<routers.size();i++){
+      RoutingTableEntry curr=routers.at(i);
+
+      int len=(int)curr.len;
+      // string tempStr=to_string((int)curr.addr);
+
+      int decimal = (int)curr.addr;
+      string tempStr=toHex(decimal);      
+      // tempStr=tempStr.substr(tempStr.size()-(len/4),(len/4));
+      // cout<<"tempStr: "<<tempStr<<endl;
+      // cout<<"strAdd: "<<strAdd<<endl;
+      // cout<<"boolean: "<<tempStr.find(strAdd)<<endl;
+      if(strAdd.find(tempStr)!=-1){
+        // cout<<"in"<<endl;
+        // cout<<tempStr.size()<<endl;
+        // cout<<max<<endl;
+        // cout<<(max<tempStr.size())<<endl;
+        if(max<(int)tempStr.size())
+        {
+          // cout<<"detect"<<endl;
+          max=tempStr.length();
+          maxindex=i;
+        // cout<<"maxindex"<<maxindex<<endl;
+        }
+      }
+    }
+
+    if(maxindex==-1)
+      return -1;
+    else
+    {
+      return maxindex;
+    }
+    
+}
+
 bool query(uint32_t addr, uint32_t *nexthop, uint32_t *if_index) {
   // TODO:
 
-  int index = match(addr);
-  if(index == -1)
+  int index=max_prefix(addr);
+  // cout<<index;
+  if(index==-1)
     return false;
-  
+
+
   *nexthop = routers.at(index).nexthop;
   *if_index = routers.at(index).if_index;
 

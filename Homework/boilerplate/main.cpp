@@ -27,7 +27,7 @@ extern bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output);
 extern uint32_t assemble(const RipPacket *rip, uint8_t *buffer);
 extern void updateTable(RipEntry entry, uint32_t if_index);
 extern void DEBUG_printRouterTable();
-extern int getIndex(uint32_t addr, uint32_t len);
+extern int isExist(uint32_t addr, uint32_t len);
 extern int csUDP(uint8_t* pac);
 extern int csIP(uint8_t* pac);
 extern vector<RoutingTableEntry> getRTE();
@@ -563,7 +563,7 @@ int main(int argc, char *argv[]) {
 							RTEntry.if_index = if_index;
 							RTEntry.metric = entry.metric;
 
-							int index = getIndex(entry.addr, len);
+							int index = isExist(entry.addr, len);
 							if(index >= 0) {
 								//exist
 								printf("update, exist\n");
