@@ -8,8 +8,6 @@
 
 #define DEBUG
 
-using namespace std;
-
 const uint8_t protUDP=0x11;
 const uint8_t protICMP=0x1;
 const uint8_t timeTypeError=11;
@@ -89,7 +87,7 @@ int main(int argc, char *argv[]) {
 				#ifdef DEBUG
 					printf("multicast from %08x\n", addrs[i]);
 				#endif
-				vector<RoutingTableEntry> routers;
+				std::vector<RoutingTableEntry> routers;
 				routers=getRTE();
 				// int length = Response(convertEndianess(addrs[i]), convertEndianess(multCast), output);
 				RipPacket resp;
@@ -265,7 +263,7 @@ int main(int argc, char *argv[]) {
 
 						RipPacket resp;
 							// fillResp(&resp, convertEndianess(multCast));
-							vector<RoutingTableEntry> routers;
+							std::vector<RoutingTableEntry> routers;
 								routers=getRTE();
 								// int length = Response(convertEndianess(addrs[i]), convertEndianess(multCast), output);
 								RipPacket resp;
