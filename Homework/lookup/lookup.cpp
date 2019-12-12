@@ -157,7 +157,7 @@ void updateTable(RipEntry entry, uint32_t if_index) {
   RTEntry.if_index = if_index;
   RTEntry.metric = entry.metric;
 
-  int index = getIndex(entry.addr, len);
+  int index = isExist(entry.addr, len);
   if(index >= 0) {
     //exist
     printf("update, exist\n");
