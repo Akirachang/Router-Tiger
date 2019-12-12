@@ -211,22 +211,22 @@ int main(int argc, char *argv[]) {
 				RTE=getRTE();
 				RipPacket resp;
 					resp.command = 2;
-					int cnt = 0;
+					int count = 0;
 				for(int i = 0;i < RTE.size();i++){
 					if((convertEndianess(multCast) & 0x00ffffff) != RTE.at(i).addr) {
 					printf("fill resp, dst_addr:%08x  addr:%08x\n", convertEndianess(multCast), RTE.at(i).addr);
-					resp.entries[cnt].addr = RTE.at(i).addr;
+					resp.entries[count].addr = RTE.at(i).addr;
 					uint32_t len = RTE.at(i).len;
 					uint32_t mask = 0;
 					for(int j = 0;j < len;j++)
 						mask = (mask << 1) + 0x1;// big endian
-					resp.entries[cnt].mask = mask;
-					resp.entries[cnt].nexthop = RTE.at(i).nexthop;
-					resp.entries[cnt].metric = RTE.at(i).metric;//not sure
-					cnt++;
+					resp.entries[count].mask = mask;
+					resp.entries[count].nexthop = RTE.at(i).nexthop;
+					resp.entries[count].metric = RTE.at(i).metric;//not sure
+					count++;
 					}
 				}
-				resp.numEntries = cnt;
+				resp.numEntries = count;
 					// UDP
 					// port = 520
 					// source port
@@ -349,33 +349,35 @@ int main(int argc, char *argv[]) {
 			if(rip.numEntries == 1 && rip.entries[0].metric == 16) {
 				in_addr_t resp_src_addr = dst_addr;
 				if(flip_dst == multCast) {
-					for(int i = 0;i < N_IFACE_ON_BOARD;i++) {
-						if((addrs[i] & 0x00ffffff) == (convertEndianess(src_addr) & 0x00ffffff)) {
+					for(int i = 0;i < N_IFACE_ON_BOARD;i++) 
+					{
+						if((addrs[i] & 0x00ffffff) == (convertEndianess(src_addr) & 0x00ffffff)) 
+						{
 							resp_src_addr = convertEndianess(addrs[i]);
 							break;
 						}
 					}
 				}
+
 				RipPacket resp;
 					vector<RoutingTableEntry> RTE;
 						RTE=getRTE();
 							resp.command = 2;
-							int cnt = 0;
+							int count = 0;
 						for(int i = 0;i < RTE.size();i++){
 							if((convertEndianess(multCast) & 0x00ffffff) != RTE.at(i).addr) {
-							printf("fill resp, dst_addr:%08x  addr:%08x\n", convertEndianess(multCast), RTE.at(i).addr);
-							resp.entries[cnt].addr = RTE.at(i).addr;
-							uint32_t len = RTE.at(i).len;
-							uint32_t mask = 0;
-							for(int j = 0;j < len;j++)
-								mask = (mask << 1) + 0x1;// big endian
-							resp.entries[cnt].mask = mask;
-							resp.entries[cnt].nexthop = RTE.at(i).nexthop;
-							resp.entries[cnt].metric = RTE.at(i).metric;//not sure
-							cnt++;
+								resp.entries[count].addr = RTE.at(i).addr;
+								uint32_t len = RTE.at(i).len;
+								uint32_t mask = 0;
+								for(int j = 0;j < len;j++)
+									mask = (mask << 1) + 0x1;// big endian
+								resp.entries[count].mask = mask;
+								resp.entries[count].nexthop = RTE.at(i).nexthop;
+								resp.entries[count].metric = RTE.at(i).metric;//not sure
+								count++;
 							}
 						}
-						resp.numEntries = cnt;
+						resp.numEntries = count;
 							// UDP
 							// port = 520
 							// source port
