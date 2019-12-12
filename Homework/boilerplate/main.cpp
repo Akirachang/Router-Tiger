@@ -207,22 +207,22 @@ int main(int argc, char *argv[]) {
 			
 			for (uint32_t i = 0; i < N_IFACE_ON_BOARD;i++) {
 				
-				vector<RoutingTableEntry> routers;
-				routers=getRTE();
+				vector<RoutingTableEntry> RTE;
+				RTE=getRTE();
 				RipPacket resp;
 					resp.command = 2;
 					int cnt = 0;
-				for(int i = 0;i < routers.size();i++){
-					if((convertEndianess(multCast) & 0x00ffffff) != routers.at(i).addr) {
-					printf("fill resp, dst_addr:%08x  addr:%08x\n", convertEndianess(multCast), routers.at(i).addr);
-					resp.entries[cnt].addr = routers.at(i).addr;
-					uint32_t len = routers.at(i).len;
+				for(int i = 0;i < RTE.size();i++){
+					if((convertEndianess(multCast) & 0x00ffffff) != RTE.at(i).addr) {
+					printf("fill resp, dst_addr:%08x  addr:%08x\n", convertEndianess(multCast), RTE.at(i).addr);
+					resp.entries[cnt].addr = RTE.at(i).addr;
+					uint32_t len = RTE.at(i).len;
 					uint32_t mask = 0;
 					for(int j = 0;j < len;j++)
 						mask = (mask << 1) + 0x1;// big endian
 					resp.entries[cnt].mask = mask;
-					resp.entries[cnt].nexthop = routers.at(i).nexthop;
-					resp.entries[cnt].metric = routers.at(i).metric;//not sure
+					resp.entries[cnt].nexthop = RTE.at(i).nexthop;
+					resp.entries[cnt].metric = RTE.at(i).metric;//not sure
 					cnt++;
 					}
 				}
@@ -321,7 +321,6 @@ int main(int argc, char *argv[]) {
 		// big endian
 		src_addr = ((int)packet[12] << 24) + ((int)packet[13] << 16) + ((int)packet[14] << 8) + packet[15];
 		dst_addr = ((int)packet[16] << 24) + ((int)packet[17] << 16) + ((int)packet[18] << 8) + packet[19];
-
 		in_addr_t flip_dst = convertEndianess(dst_addr);
 
 		bool dst_is_me = false;
@@ -332,6 +331,7 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		// TODO: Handle rip multicast address?
+		//multicast address is flipped dst address, the dst is me = true
 		if(flip_dst == multCast) {
 			dst_is_me = true;
 		}
@@ -346,38 +346,36 @@ int main(int argc, char *argv[]) {
 					// 3a.3 request, ref. RFC2453 3.9.1
 					// only need to respond to whole table requests in the lab
 					
-					if(rip.numEntries == 1 && rip.entries[0].metric == 16) {
-						
-						in_addr_t resp_src_addr = dst_addr;
-						if(flip_dst == multCast) {
-							for(int i = 0;i < N_IFACE_ON_BOARD;i++) {
-								if((addrs[i] & 0x00ffffff) == (convertEndianess(src_addr) & 0x00ffffff)) {
-									resp_src_addr = convertEndianess(addrs[i]);
-									break;
-								}
+			if(rip.numEntries == 1 && rip.entries[0].metric == 16) {
+				in_addr_t resp_src_addr = dst_addr;
+				if(flip_dst == multCast) {
+					for(int i = 0;i < N_IFACE_ON_BOARD;i++) {
+						if((addrs[i] & 0x00ffffff) == (convertEndianess(src_addr) & 0x00ffffff)) {
+							resp_src_addr = convertEndianess(addrs[i]);
+							break;
+						}
+					}
+				}
+				RipPacket resp;
+					vector<RoutingTableEntry> RTE;
+						RTE=getRTE();
+							resp.command = 2;
+							int cnt = 0;
+						for(int i = 0;i < RTE.size();i++){
+							if((convertEndianess(multCast) & 0x00ffffff) != RTE.at(i).addr) {
+							printf("fill resp, dst_addr:%08x  addr:%08x\n", convertEndianess(multCast), RTE.at(i).addr);
+							resp.entries[cnt].addr = RTE.at(i).addr;
+							uint32_t len = RTE.at(i).len;
+							uint32_t mask = 0;
+							for(int j = 0;j < len;j++)
+								mask = (mask << 1) + 0x1;// big endian
+							resp.entries[cnt].mask = mask;
+							resp.entries[cnt].nexthop = RTE.at(i).nexthop;
+							resp.entries[cnt].metric = RTE.at(i).metric;//not sure
+							cnt++;
 							}
 						}
-
-						RipPacket resp;
-							vector<RoutingTableEntry> routers;
-								routers=getRTE();
-									resp.command = 2;
-									int cnt = 0;
-								for(int i = 0;i < routers.size();i++){
-									if((convertEndianess(multCast) & 0x00ffffff) != routers.at(i).addr) {
-									printf("fill resp, dst_addr:%08x  addr:%08x\n", convertEndianess(multCast), routers.at(i).addr);
-									resp.entries[cnt].addr = routers.at(i).addr;
-									uint32_t len = routers.at(i).len;
-									uint32_t mask = 0;
-									for(int j = 0;j < len;j++)
-										mask = (mask << 1) + 0x1;// big endian
-									resp.entries[cnt].mask = mask;
-									resp.entries[cnt].nexthop = routers.at(i).nexthop;
-									resp.entries[cnt].metric = routers.at(i).metric;//not sure
-									cnt++;
-									}
-								}
-								resp.numEntries = cnt;
+						resp.numEntries = cnt;
 							// UDP
 							// port = 520
 							// source port
@@ -474,8 +472,8 @@ int main(int argc, char *argv[]) {
 								entry.nexthop = convertEndianess(src_addr);
 							}
 							//updarte RT
-							vector<RoutingTableEntry> routers;
-							routers=getRTE();
+							vector<RoutingTableEntry> RTE;
+							RTE=getRTE();
 							RoutingTableEntry RTEntry;
 							RTEntry.addr = entry.addr;
 							RTEntry.nexthop = entry.nexthop;
@@ -495,7 +493,7 @@ int main(int argc, char *argv[]) {
 							if(index >= 0) {
 								//exist
 								printf("update, exist\n");
-								if(RTEntry.metric + 1 < routers.at(index).metric) {
+								if(RTEntry.metric + 1 < RTE.at(index).metric) {
 								printf("update, newMetric < metric\n");
 								RTEntry.metric++;
 								update(true, RTEntry);
