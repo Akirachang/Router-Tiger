@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <vector>
-#include <string>
 #include <sstream>
+
 using namespace std;
 
 
@@ -30,6 +30,7 @@ std::vector<RoutingTableEntry> routers;
 vector<RoutingTableEntry> getRTE(){
   return routers;
 }
+
 string toHex(int addr){
       stringstream my_ss;
       my_ss << hex << addr;
@@ -58,7 +59,7 @@ int isExist2(uint32_t addr){
 }
 
 void update(bool insert, RoutingTableEntry entry) {
-  //TODO:
+  // TODO:
   if(insert){
     int index=isExist(entry.addr,entry.len);
     if(index==-1){ // does not exist, just insert!
