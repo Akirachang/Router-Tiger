@@ -46,7 +46,7 @@ void IPHeader(in_addr_t src_addr, in_addr_t dst_addr, uint16_t totalLength, uint
 int ICMPTimeExceeded(in_addr_t src_addr, in_addr_t dst_addr);
 int ICMPDestNetworkUnreachable(in_addr_t src_addr, in_addr_t dst_addr);
 int Response(in_addr_t src_addr, in_addr_t dst_addr, uint8_t* pac);
-uint32_t reverse(uint32_t addr);
+uint32_t convertEndianess(uint32_t addr);
 
 int main(int argc, char *argv[]) {
 	int res = HAL_Init(1, addrs);
@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
 				#ifdef DEBUG
 					printf("multicast from %08x\n", addrs[i]);
 				#endif
-				int length = Response(reverse(addrs[i]), reverse(multCast), output);
+				int length = Response(convertEndianess(addrs[i]), convertEndianess(multCast), output);
 				HAL_SendIPPacket(i, output, length, MulticastMac);
 			}
 			last_time = time;
@@ -156,10 +156,10 @@ int main(int argc, char *argv[]) {
 		// big endian
 		src_addr = ((int)packet[12] << 24) + ((int)packet[13] << 16) + ((int)packet[14] << 8) + packet[15];
 		dst_addr = ((int)packet[16] << 24) + ((int)packet[17] << 16) + ((int)packet[18] << 8) + packet[19];
-		in_addr_t rev_dst_addr = reverse(dst_addr);
+		in_addr_t rev_dst_addr = convertEndianess(dst_addr);
 
 		#ifdef DEBUG
-			printf("source address:%08x\ndestination address:%08x\nreverse destination address:%08x\nif_index:%d\n", src_addr, dst_addr, rev_dst_addr, if_index);
+			printf("source address:%08x\ndestination address:%08x\nconvertEndianess destination address:%08x\nif_index:%d\n", src_addr, dst_addr, rev_dst_addr, if_index);
 		#endif
 
 		// 2. check whether dst is me
@@ -203,8 +203,8 @@ int main(int argc, char *argv[]) {
 								printf("processing request, dst addr == Multicast addr\n");
 							#endif
 							for(int i = 0;i < N_IFACE_ON_BOARD;i++) {
-								if((addrs[i] & 0x00ffffff) == (reverse(src_addr) & 0x00ffffff)) {
-									resp_src_addr = reverse(addrs[i]);
+								if((addrs[i] & 0x00ffffff) == (convertEndianess(src_addr) & 0x00ffffff)) {
+									resp_src_addr = convertEndianess(addrs[i]);
 									break;
 								}
 							}
@@ -264,7 +264,7 @@ int main(int argc, char *argv[]) {
 								printf("processing response, update routing table\n");
 							#endif
 							if(entry.nexthop == 0) {
-								entry.nexthop = reverse(src_addr);
+								entry.nexthop = convertEndianess(src_addr);
 								#ifdef DEBUG
 									printf("processing response, next hop == 0, new next hop = %08x\n", entry.nexthop);
 								#endif
@@ -286,7 +286,7 @@ int main(int argc, char *argv[]) {
 			// forward
 			// beware of endianness
 			uint32_t nexthop, dest_if;
-			if (query(reverse(dst_addr), &nexthop, &dest_if)) {
+			if (query(convertEndianess(dst_addr), &nexthop, &dest_if)) {
 				// found
 				#ifdef DEBUG
 					printf("forward, found\n");
@@ -297,7 +297,7 @@ int main(int argc, char *argv[]) {
 					#ifdef DEBUG
 						printf("forward, next hop == 0, dst addr =%08x\n", dst_addr);
 					#endif
-					nexthop = reverse(dst_addr);
+					nexthop = convertEndianess(dst_addr);
 				}
 				if (HAL_ArpGetMacAddress(dest_if, nexthop, dest_mac) == 0) {
 					// found
@@ -336,7 +336,7 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-uint32_t reverse(uint32_t addr) {
+uint32_t convertEndianess(uint32_t addr) {
 	return ((addr & 0x000000ff) << 24) + ((addr & 0x0000ff00) << 8) + ((addr & 0x00ff0000) >> 8) + ((addr & 0xff000000) >> 24);
 }
 
@@ -462,7 +462,7 @@ int ICMPDestNetworkUnreachable(in_addr_t src_addr, in_addr_t dst_addr) {
 
 int Response(in_addr_t src_addr, in_addr_t dst_addr, uint8_t* pac) {
 	RipPacket resp;
-	fillResp(&resp, reverse(dst_addr));
+	fillResp(&resp, convertEndianess(dst_addr));
 	// UDP
 	// port = 520
 	// source port
