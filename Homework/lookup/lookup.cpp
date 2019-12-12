@@ -25,6 +25,10 @@ using namespace std;
 
 std::vector<RoutingTableEntry> routers;
 
+vector<RoutingTableEntry> getRTE(){
+  return routers;
+}
+
 int getIndex(uint32_t addr, uint32_t len){
   int index = -1;
   for(int i = 0;i < routers.size();i++) {

@@ -4,10 +4,11 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
+#include <vector>
 
 #define DEBUG
 
+using namespace std;
 
 const uint8_t protUDP=0x11;
 const uint8_t protICMP=0x1;
@@ -28,6 +29,7 @@ extern void updateRouterTable(RipEntry entry, uint32_t if_index);
 extern void DEBUG_printRouterTable();
 extern int getIndex(uint32_t addr, uint32_t len);
 extern int csUDP(uint8_t* pac);
+extern vector<RoutingTableEntry> getRTE();
 
 
 uint8_t packet[2048];
@@ -87,9 +89,29 @@ int main(int argc, char *argv[]) {
 				#ifdef DEBUG
 					printf("multicast from %08x\n", addrs[i]);
 				#endif
+				vector<RoutingTableEntry> routers;
+				routers=getRTE();
 				// int length = Response(convertEndianess(addrs[i]), convertEndianess(multCast), output);
 				RipPacket resp;
-					fillResp(&resp, convertEndianess(multCast));
+					// fillResp(&resp, convertEndianess(multCast));
+					resp.command = 2;
+					int cnt = 0;
+				for(int i = 0;i < routers.size();i++){
+					if((convertEndianess(multCast) & 0x00ffffff) != routers.at(i).addr) {
+					printf("fill resp, dst_addr:%08x  addr:%08x\n", convertEndianess(multCast), routers.at(i).addr);
+					resp.entries[cnt].addr = routers.at(i).addr;
+					uint32_t len = routers.at(i).len;
+					uint32_t mask = 0;
+					for(int j = 0;j < len;j++)
+						mask = (mask << 1) + 0x1;// big endian
+					resp.entries[cnt].mask = mask;
+					resp.entries[cnt].nexthop = routers.at(i).nexthop;
+					resp.entries[cnt].metric = routers.at(i).metric;//not sure
+					cnt++;
+					}
+				}
+				resp.numEntries = cnt;
+
 					// UDP
 					// port = 520
 					// source port
@@ -242,7 +264,28 @@ int main(int argc, char *argv[]) {
 						// int length = Response(resp_src_addr, src_addr, output);//what if dst_addr is multicast??????
 
 						RipPacket resp;
-							fillResp(&resp, convertEndianess(multCast));
+							// fillResp(&resp, convertEndianess(multCast));
+							vector<RoutingTableEntry> routers;
+								routers=getRTE();
+								// int length = Response(convertEndianess(addrs[i]), convertEndianess(multCast), output);
+								RipPacket resp;
+									resp.command = 2;
+									int cnt = 0;
+								for(int i = 0;i < routers.size();i++){
+									if((convertEndianess(multCast) & 0x00ffffff) != routers.at(i).addr) {
+									printf("fill resp, dst_addr:%08x  addr:%08x\n", convertEndianess(multCast), routers.at(i).addr);
+									resp.entries[cnt].addr = routers.at(i).addr;
+									uint32_t len = routers.at(i).len;
+									uint32_t mask = 0;
+									for(int j = 0;j < len;j++)
+										mask = (mask << 1) + 0x1;// big endian
+									resp.entries[cnt].mask = mask;
+									resp.entries[cnt].nexthop = routers.at(i).nexthop;
+									resp.entries[cnt].metric = routers.at(i).metric;//not sure
+									cnt++;
+									}
+								}
+								resp.numEntries = cnt;
 							// UDP
 							// port = 520
 							// source port
