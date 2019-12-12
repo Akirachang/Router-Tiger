@@ -175,13 +175,3 @@ void updateTable(RipEntry entry, uint32_t if_index) {
     update(true, RTEntry);
   }
 }
-
-void DEBUG_printRouterTable() {
-  printf("f**king debugging babe?\n#########################################\n");
-  for(int i = 0;i < routers.size();i++) {
-    RoutingTableEntry RTEntry = routers.at(i);
-    printf("entry %d:\n", i);
-    printf("addr:%08x\nlen:%d\nif_index:%d\nnexthop:%08x\nmetric:%08x\n--------------------------------\n", RTEntry.addr, RTEntry.len, RTEntry.if_index, RTEntry.nexthop, RTEntry.metric);
-  }
-  printf("#########################################\n");
-}

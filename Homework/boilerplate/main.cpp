@@ -7,7 +7,6 @@
 #include <string.h>
 #include <vector>
 
-#define DEBUG
 
 using namespace std;
 
@@ -26,7 +25,6 @@ extern bool forward(uint8_t *packet, size_t len);
 extern bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output);
 extern uint32_t assemble(const RipPacket *rip, uint8_t *buffer);
 extern void updateTable(RipEntry entry, uint32_t if_index);
-extern void DEBUG_printRouterTable();
 extern int isExist(uint32_t addr, uint32_t len);
 extern int csUDP(uint8_t* pac);
 extern int csIP(uint8_t* pac);
@@ -208,13 +206,9 @@ int main(int argc, char *argv[]) {
 			// send complete routing table to every interface
 			// ref. RFC2453 3.8
 			// multicast MAC for 224.0.0.9 is 01:00:5e:00:00:09
-			#ifdef DEBUG
-				printf("muliticast\n");
-			#endif
+			
 			for (uint32_t i = 0; i < N_IFACE_ON_BOARD;i++) {
-				#ifdef DEBUG
-					printf("multicast from %08x\n", addrs[i]);
-				#endif
+				
 				vector<RoutingTableEntry> routers;
 				routers=getRTE();
 				RipPacket resp;
@@ -294,9 +288,7 @@ int main(int argc, char *argv[]) {
 			}
 			last_time = time;
 			printf("Timer\n");
-			#ifdef DEBUG
-				DEBUG_printRouterTable();
-			#endif
+			
 		}
 
 		int mask = (1 << N_IFACE_ON_BOARD) - 1;
@@ -306,26 +298,18 @@ int main(int argc, char *argv[]) {
 		res = HAL_ReceiveIPPacket(mask, packet, sizeof(packet), src_mac,
 										dst_mac, 1000, &if_index);
 		if (res == HAL_ERR_EOF) {
-			#ifdef DEBUG
-				printf("res == HAL_ERR_EOF\n");
-			#endif
+			
 			break;
 		} else if (res < 0) {
-			#ifdef DEBUG
-				printf("res < 0\n");
-			#endif
+			
 			return res;
 		} else if (res == 0) {
 			// Timeout
-			#ifdef DEBUG
-				printf("res == 0\n");
-			#endif
+			
 			continue;
 		} else if (res > sizeof(packet)) {
 			// packet is truncated, ignore it
-			#ifdef DEBUG
-				printf("res > sizeof(packet)\n");
-			#endif
+			
 			continue;
 		}
 		// res > 0
@@ -347,11 +331,6 @@ int main(int argc, char *argv[]) {
 			continue;
 		}
 
-		#ifdef DEBUG
-			printf("IP valid!\n");
-		#endif
-
-
 
 		in_addr_t src_addr, dst_addr;
 		// extract src_addr and dst_addr from packet
@@ -360,10 +339,6 @@ int main(int argc, char *argv[]) {
 		dst_addr = ((int)packet[16] << 24) + ((int)packet[17] << 16) + ((int)packet[18] << 8) + packet[19];
 
 		in_addr_t rev_dst_addr = convertEndianess(dst_addr);
-
-		#ifdef DEBUG
-			printf("source address:%08x\ndestination address:%08x\nconvertEndianess destination address:%08x\nif_index:%d\n", src_addr, dst_addr, rev_dst_addr, if_index);
-		#endif
 
 		// 2. check whether dst is me
 		bool dst_is_me = false;
@@ -376,15 +351,9 @@ int main(int argc, char *argv[]) {
 		// TODO: Handle rip multicast address?
 		if(rev_dst_addr == multCast) {
 			dst_is_me = true;
-			#ifdef DEBUG
-				printf("multicast address\n");
-			#endif
 		}
 
 		if (dst_is_me) {
-			#ifdef DEBUG
-				printf("destination is me!\n");
-			#endif
 			// TODO: RIP?
 			// 3a.1
 			RipPacket rip;
@@ -393,18 +362,11 @@ int main(int argc, char *argv[]) {
 				if (rip.command == 1) {
 					// 3a.3 request, ref. RFC2453 3.9.1
 					// only need to respond to whole table requests in the lab
-					#ifdef DEBUG
-						printf("processing request, numofentries:%d\nmetric:%d\n", rip.numEntries, rip.entries[0].metric);
-					#endif
+					
 					if(rip.numEntries == 1 && rip.entries[0].metric == 16) {
-						#ifdef DEBUG
-							printf("processing request, whole table request\n");
-						#endif
+						
 						in_addr_t resp_src_addr = dst_addr;
 						if(rev_dst_addr == multCast) {
-							#ifdef DEBUG
-								printf("processing request, dst addr == Multicast addr\n");
-							#endif
 							for(int i = 0;i < N_IFACE_ON_BOARD;i++) {
 								if((addrs[i] & 0x00ffffff) == (convertEndianess(src_addr) & 0x00ffffff)) {
 									resp_src_addr = convertEndianess(addrs[i]);
@@ -412,9 +374,6 @@ int main(int argc, char *argv[]) {
 								}
 							}
 						}
-						#ifdef DEBUG
-							printf("processing request, resp src addr = %08x\n", resp_src_addr);
-						#endif
 
 						RipPacket resp;
 							vector<RoutingTableEntry> routers;
@@ -492,9 +451,7 @@ int main(int argc, char *argv[]) {
 						HAL_SendIPPacket(if_index, output, totalLength, src_mac);
 
 					} else {
-						#ifdef DEBUG
-							printf("processing request, not whole table request(do nothing)\n");
-						#endif
+						//DO SOMETHING ELSE
 					}
 				} else {
 					// 3a.2 response, ref. RFC2453 3.9.2
@@ -504,23 +461,17 @@ int main(int argc, char *argv[]) {
 					// what is missing from RoutingTableEntry?
 					// TODO: use query and update
 					// triggered updates? ref. RFC2453 3.10.1
-					#ifdef DEBUG
-						printf("processing response, num of entries:%d\n", rip.numEntries);
-					#endif
+					
 					for(int i = 0;i < rip.numEntries;i++) {
 						RipEntry entry = rip.entries[i];
 						uint32_t newMetirc = entry.metric + 1;
-						#ifdef DEBUG
-							printf("processing response, new Metric:%d\n", newMetirc);
-						#endif
+						
 						uint32_t queryNexthop;
 						uint32_t queryMetric;
 						bool exist = query(entry.addr, &queryNexthop, &queryMetric);
 						if(newMetirc > 16 && src_addr != 0xc0a80301 && src_addr != 0xc0a80402 && entry.nexthop == queryNexthop) { //reverse poisoning
 							//delete this route
-							#ifdef DEBUG
-								printf("processing response, delete\n");
-							#endif
+							
 							uint32_t len = 32;
 							uint32_t mask = entry.mask;
 							while((mask & 1) == 0) {
@@ -536,14 +487,8 @@ int main(int argc, char *argv[]) {
 							};
 							update(false, RTEntry);
 						} else {
-							#ifdef DEBUG
-								printf("processing response, update routing table\n");
-							#endif
 							if(entry.nexthop == 0) {
 								entry.nexthop = convertEndianess(src_addr);
-								#ifdef DEBUG
-									printf("processing response, next hop == 0, new next hop = %08x\n", entry.nexthop);
-								#endif
 							}
 							//updarte RT
 							vector<RoutingTableEntry> routers;
@@ -583,29 +528,18 @@ int main(int argc, char *argv[]) {
 					}
 				}
 			} else {
-				#ifdef DEBUG
-					printf("disassemble failed\n");
-				#endif
+				//DISASSEMBLE FAILED
 			} 
 		} else { //dst_is_me
-			#ifdef DEBUG
-			printf("forward!\n");
-			#endif
 			// 3b.1 dst is not me
 			// forward
 			// beware of endianness
 			uint32_t nexthop, dest_if;
 			if (query(convertEndianess(dst_addr), &nexthop, &dest_if)) {
 				// found
-				#ifdef DEBUG
-					printf("forward, found\n");
-				#endif
 				macaddr_t dest_mac;
 				// direct routing
 				if (nexthop == 0) {
-					#ifdef DEBUG
-						printf("forward, next hop == 0, dst addr =%08x\n", dst_addr);
-					#endif
 					nexthop = convertEndianess(dst_addr);
 				}
 				if (HAL_ArpGetMacAddress(dest_if, nexthop, dest_mac) == 0) {
@@ -617,9 +551,6 @@ int main(int argc, char *argv[]) {
 					uint8_t TTL = output[8];
 					if(TTL == 0) {
 						//return a ICMP Time Exceeded to sender 
-						#ifdef DEBUG
-							printf("forward, TTL = 0\n");
-						#endif
 						int length = timeExceed(dst_addr, src_addr);
 						HAL_SendIPPacket(dest_if, output, length, dest_mac);
 						continue;
