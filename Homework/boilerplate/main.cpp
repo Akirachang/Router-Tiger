@@ -54,56 +54,56 @@ int timeExceed(in_addr_t src_addr, in_addr_t dst_addr) {
 	uint16_t ICMPLength = 8 + packetHeaderLength + 8;
 	uint16_t totalLength = 20 + ICMPLength;
 	//IP header
-
 	//this function fill a IP header 
 	//version = 4, header length = 5
 	output[0] = 0x45;
-	//type of service = 0
+	//TOS = 0
 	output[1] = 0x00;
-	//total length
+	//TOTAL LENGTH
 	output[2] = totalLength >> 8;
 	output[3] = totalLength;
-	//id = 0
+	//ID
 	output[4] = 0x00;
 	output[5] = 0x00;
-	//flags = 0, fragmented offset = 0
+	//FLAG, FO
 	output[6] = 0x00;
 	output[7] = 0x00;
-	//time to live = 1
+	//TTL
 	output[8] = 0x01;
-	//protocol = 17(UDP)
+	//PROTOCOL
 	output[9] = protICMP;
-	//source address = src_addr
+	//SRC ADDR
 	output[12] = src_addr >> 24;
 	output[13] = src_addr >> 16;
 	output[14] = src_addr >> 8;
 	output[15] = src_addr;
-	//destination address = dst_addr
+	//DST ADDR
 	output[16] = dst_addr >> 24;
 	output[17] = dst_addr >> 16;
 	output[18] = dst_addr >> 8;
 	output[19] = dst_addr;
 	csIP(output);
-
-	//ICMP header
+	//ICMP HEADER
 	output[20] = timeTypeError;
 	output[21] = timeCodeError;
-	for(int i = 0;i < 6;i++)
-		output[22 + i] = 0x0;
-	//source packet IP header and 8 bytes
+	
+	output[22]=0x0;
+	output[23]=0x0;
+	output[24]=0x0;
+	output[25]=0x0;
+	output[26]=0x0;
+	output[27]=0x0;
+	//ICMP PACKET DESC: https://www.jianshu.com/p/7c38ad723b93
 	memcpy(output + 20 + 8, packet, size_t(packetHeaderLength));
 
-	output[22] = 0;
-	output[23] = 0;
 	int checksum = 0;
 	for(int i = 0; i < ICMPLength;i++) {
-		if(i % 2 == 0) {
+		if(i % 2 == 0) 
 			checksum += ((int)output[20 + i]) << 8;
-		} else {
+		else 
 			checksum += (int)output[20 + i];
-		}
 	}
-	checksum = (checksum >> 16) + (checksum & 0xffff);
+	checksum = (checksum >> 16)+(checksum & 0xffff);
 	checksum += (checksum >> 16);
 	checksum = ~checksum;
 	output[22] = checksum >> 8;
@@ -117,54 +117,52 @@ int unReachable(in_addr_t src_addr, in_addr_t dst_addr) {
 	uint16_t ICMPLength = 8 + packetHeaderLength + 8;
 	uint16_t totalLength = 20 + ICMPLength;
 	//IP header
-
 	//this function fill a IP header 
 	//version = 4, header length = 5
 	output[0] = 0x45;
-	//type of service = 0
+	//TOS = 0
 	output[1] = 0x00;
-	//total length
+	//TOTAL LENGTH
 	output[2] = totalLength >> 8;
 	output[3] = totalLength;
-	//id = 0
+	//IDENTIFIER
 	output[4] = 0x00;
 	output[5] = 0x00;
-	//flags = 0, fragmented offset = 0
+	//FLAG
 	output[6] = 0x00;
 	output[7] = 0x00;
-	//time to live = 1
+	//TTL
 	output[8] = 0x01;
-	//protocol = 17(UDP)
+	//PROTOCOL
 	output[9] = protICMP;
-	//source address = src_addr
+	//SRC ADDR
 	output[12] = src_addr >> 24;
 	output[13] = src_addr >> 16;
 	output[14] = src_addr >> 8;
 	output[15] = src_addr;
-	//destination address = dst_addr
+	//DST ADDR
 	output[16] = dst_addr >> 24;
 	output[17] = dst_addr >> 16;
 	output[18] = dst_addr >> 8;
 	output[19] = dst_addr;
 	csIP(output);
-
 	//ICMP header
 	output[20] = unreachTypeError;
 	output[21] = unreachCodeError;
-	for(int i = 0;i < 6;i++)
-		output[22 + i] = 0x0;
-	//source packet IP header and 8 bytes
-	memcpy(output + 20 + 8, packet, size_t(packetHeaderLength));
 
-	output[22] = 0;
-	output[23] = 0;
+	output[22]=0x0;
+	output[23]=0x0;
+	output[24]=0x0;
+	output[25]=0x0;
+	output[26]=0x0;
+	output[27]=0x0;
+	memcpy(output + 20 + 8, packet, size_t(packetHeaderLength));
 	int checksum = 0;
 	for(int i = 0; i < ICMPLength;i++) {
-		if(i % 2 == 0) {
+		if(i % 2 == 0) 
 			checksum += ((int)output[20 + i]) << 8;
-		} else {
+		else 
 			checksum += (int)output[20 + i];
-		}
 	}
 	checksum = (checksum >> 16) + (checksum & 0xffff);
 	checksum += (checksum >> 16);
@@ -244,46 +242,43 @@ int main(int argc, char *argv[]) {
 					//total length of IP packet
 					uint16_t totalLength = rip_len + 28;
 					//fill IP header
-
-					//this function fill a IP header 
-						//version = 4, header length = 5
+						//VERSION, HEADERLENGTH
 						output[0] = 0x45;
-						//type of service = 0
+						//TOS
 						output[1] = 0x00;
-						//total length
+						//TOTAL LENGTH
 						output[2] = totalLength >> 8;
 						output[3] = totalLength;
-						//id = 0
+						//IDENTIFIER
 						output[4] = 0x00;
 						output[5] = 0x00;
-						//flags = 0, fragmented offset = 0
+						//FLAGS
 						output[6] = 0x00;
 						output[7] = 0x00;
-						//time to live = 1
+						//TTL
 						output[8] = 0x01;
-						//protocol = 17(UDP)
+						//PROTOCOL
 						output[9] = protUDP;
-						//source address = src_addr
+						//SRC ADDRESS
 						output[12] = convertEndianess(addrs[i]) >> 24;
 						output[13] = convertEndianess(addrs[i])>> 16;
 						output[14] = convertEndianess(addrs[i]) >> 8;
 						output[15] = convertEndianess(addrs[i]);
-						//destination address = dst_addr
+						//DEST ADDRESS
 						output[16] = convertEndianess(multCast) >> 24;
 						output[17] = convertEndianess(multCast) >> 16;
 						output[18] = convertEndianess(multCast) >> 8;
 						output[19] = convertEndianess(multCast);
 						csIP(output);
 
-					//length of UDP packet
-					uint16_t UDPLength = rip_len + 8;
-					output[24] = UDPLength >> 8;
-					output[25] = UDPLength;
+					uint16_t udplen = rip_len + 8;
+					output[24] = udplen >> 8;
+					output[25] = udplen;
 					// checksum calculation for ip and udp <---- IP checksum already calculated before
 					//UDP checksum
-					int UDPchecksum = csUDP(output);
-					output[26] = UDPchecksum >> 8;
-					output[27] = UDPchecksum;
+					int udpcs = csUDP(output);
+					output[26] = udpcs >> 8;
+					output[27] = udpcs;
 				HAL_SendIPPacket(i, output, totalLength, MulticastMac);
 			}
 			last_time = time;
@@ -313,7 +308,6 @@ int main(int argc, char *argv[]) {
 			continue;
 		}
 		// res > 0
-		// 1. validate
 		uint8_t version = packet[0] >> 4;
 		if(version != 4 && version != 6) {
 			printf("Invalid version\n");
@@ -340,7 +334,6 @@ int main(int argc, char *argv[]) {
 
 		in_addr_t rev_dst_addr = convertEndianess(dst_addr);
 
-		// 2. check whether dst is me
 		bool dst_is_me = false;
 		for (int i = 0; i < N_IFACE_ON_BOARD;i++) {
 			if (memcmp(&rev_dst_addr, &addrs[i], sizeof(in_addr_t)) == 0) {
@@ -439,14 +432,14 @@ int main(int argc, char *argv[]) {
 							output[19] = dst_addr;
 							csIP(output);
 							//length of UDP packet
-							uint16_t UDPLength = rip_len + 8;
-							output[24] = UDPLength >> 8;
-							output[25] = UDPLength;
+							uint16_t udplen = rip_len + 8;
+							output[24] = udplen >> 8;
+							output[25] = udplen;
 							// checksum calculation for ip and udp <---- IP checksum already calculated before
 							//UDP checksum
-							int UDPchecksum = csUDP(output);
-							output[26] = UDPchecksum >> 8;
-							output[27] = UDPchecksum;
+							int udpcs = csUDP(output);
+							output[26] = udpcs >> 8;
+							output[27] = udpcs;
 						// send it back
 						HAL_SendIPPacket(if_index, output, totalLength, src_mac);
 
@@ -574,3 +567,13 @@ int main(int argc, char *argv[]) {
 	}
   return 0;
 }
+
+/*
+documents:
+ICMP PACKETS: https://www.cloudshark.org/captures/fe65ed807bc3
+UDP PACKETS: https://blog.csdn.net/fujibao/article/details/80859152
+ICMP PACKET DESC: https://www.jianshu.com/p/7c38ad723b93
+Datatracker: https://datatracker.ietf.org/doc/rfc2453/?include_text=1
+MAC ADDRESS: https://blog.csdn.net/wangguchao/article/details/80526130
+ROUTING TABLE: https://www.youtube.com/watch?v=pbqc6IlFuVc
+*/
