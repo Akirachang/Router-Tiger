@@ -109,7 +109,7 @@ bool query(uint32_t addr, uint32_t *nexthop, uint32_t *if_index) {
   return true;
 }
 
-void updateRouterTable(RipEntry entry, uint32_t if_index) {
+void updateTable(RipEntry entry, uint32_t if_index) {
   RoutingTableEntry RTEntry;
   RTEntry.addr = entry.addr;
   RTEntry.nexthop = entry.nexthop;

@@ -25,7 +25,7 @@ extern bool query(uint32_t addr, uint32_t *nexthop, uint32_t *if_index);
 extern bool forward(uint8_t *packet, size_t len);
 extern bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output);
 extern uint32_t assemble(const RipPacket *rip, uint8_t *buffer);
-extern void updateRouterTable(RipEntry entry, uint32_t if_index);
+extern void updateTable(RipEntry entry, uint32_t if_index);
 extern void DEBUG_printRouterTable();
 extern int getIndex(uint32_t addr, uint32_t len);
 extern int csUDP(uint8_t* pac);
@@ -362,7 +362,7 @@ int main(int argc, char *argv[]) {
 									printf("processing response, next hop == 0, new next hop = %08x\n", entry.nexthop);
 								#endif
 							}
-							updateRouterTable(entry, if_index);
+							updateTable(entry, if_index);
 						}
 					}
 				}
