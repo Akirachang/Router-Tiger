@@ -44,7 +44,6 @@ in_addr_t addrs[N_IFACE_ON_BOARD] = {0x0203a8c0, 0x0104a8c0, 0x0102000a, 0x01030
 
 macaddr_t MulticastMac = {0x01, 0x00, 0x5e, 0x00, 0x00, 0x09}; //idk big endian or ... fuck
 
-void IPHeader(in_addr_t src_addr, in_addr_t dst_addr, uint16_t totalLength, uint8_t protocol, uint8_t* pac);
 int timeExceed(in_addr_t src_addr, in_addr_t dst_addr);
 int unReachable(in_addr_t src_addr, in_addr_t dst_addr);
 int Response(in_addr_t src_addr, in_addr_t dst_addr, uint8_t* pac);
@@ -129,7 +128,6 @@ int main(int argc, char *argv[]) {
 					//total length of IP packet
 					uint16_t totalLength = rip_len + 28;
 					//fill IP header
-					// IPHeader( convertEndianess(addrs[i]), convertEndianess(multCast), totalLength, protUDP, output);
 
 					//this function fill a IP header 
 						//version = 4, header length = 5
@@ -331,7 +329,6 @@ int main(int argc, char *argv[]) {
 							//total length of IP packet
 							uint16_t totalLength = rip_len + 28;
 							//fill IP header
-							// IPHeader(resp_src_addr, src_addr, totalLength, protUDP, output);
 							//this function fill a IP header 
 							//version = 4, header length = 5
 							output[0] = 0x45;
@@ -533,7 +530,6 @@ int timeExceed(in_addr_t src_addr, in_addr_t dst_addr) {
 	uint16_t ICMPLength = 8 + packetHeaderLength + 8;
 	uint16_t totalLength = 20 + ICMPLength;
 	//IP header
-	// IPHeader(src_addr, dst_addr, totalLength, protICMP, output);
 
 	//this function fill a IP header 
 	//version = 4, header length = 5
@@ -597,7 +593,6 @@ int unReachable(in_addr_t src_addr, in_addr_t dst_addr) {
 	uint16_t ICMPLength = 8 + packetHeaderLength + 8;
 	uint16_t totalLength = 20 + ICMPLength;
 	//IP header
-	// IPHeader(src_addr, dst_addr, totalLength, protICMP, output);
 
 	//this function fill a IP header 
 	//version = 4, header length = 5
