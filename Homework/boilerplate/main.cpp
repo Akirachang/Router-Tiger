@@ -8,14 +8,14 @@
 
 #define DEBUG
 
-#define protocolUDP 0x11
-#define protocolICMP 0x1
-#define ICMPtypeTimeExceeded 11
-#define ICMPcodeTimeExceeded 0
-#define ICMPtypeDestNetworkUnreachable 3
-#define ICMPcodeDestNetworkUnreachable 0
-#define MulticastAddr 0x090000e0
-//e0000009
+
+const uint8_t protUDP=0x11;
+const uint8_t protICMP=0x1;
+const uint8_t timeTypeError=11;
+const uint8_t timeCodeError=0;
+const uint8_t unreachTypeError=3;
+const uint8_t unreachCodeError=0;
+const uint32_t multCast=0x090000e0;
 
 extern bool validateIPChecksum(uint8_t *packet, size_t len);
 extern void update(bool insert, RoutingTableEntry entry);
@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
 				#ifdef DEBUG
 					printf("multicast from %08x\n", addrs[i]);
 				#endif
-				int length = Response(reverse(addrs[i]), reverse(MulticastAddr), output);
+				int length = Response(reverse(addrs[i]), reverse(multCast), output);
 				HAL_SendIPPacket(i, output, length, MulticastMac);
 			}
 			last_time = time;
@@ -170,7 +170,7 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		// TODO: Handle rip multicast address?
-		if(rev_dst_addr == MulticastAddr) {
+		if(rev_dst_addr == multCast) {
 			dst_is_me = true;
 			#ifdef DEBUG
 				printf("multicast address\n");
@@ -197,7 +197,7 @@ int main(int argc, char *argv[]) {
 							printf("processing request, whole table request\n");
 						#endif
 						in_addr_t resp_src_addr = dst_addr;
-						if(rev_dst_addr == MulticastAddr) {
+						if(rev_dst_addr == multCast) {
 							#ifdef DEBUG
 								printf("processing request, dst addr == Multicast addr\n");
 							#endif
@@ -371,7 +371,7 @@ int getUDPChecksum(uint8_t* pac) {
 			UDPchecksum += (int)pac[i];
 		}
 	}
-	UDPchecksum += protocolUDP;
+	UDPchecksum += protUDP;
 	UDPchecksum += UDPLength;
 	//UDP header
 	for(int i = 20;i < 26;i++) {
@@ -426,10 +426,10 @@ int ICMPTimeExceeded(in_addr_t src_addr, in_addr_t dst_addr) {
 	uint16_t ICMPLength = 8 + packetHeaderLength + 8;
 	uint16_t totalLength = 20 + ICMPLength;
 	//IP header
-	IPHeader(src_addr, dst_addr, totalLength, protocolICMP, output);
+	IPHeader(src_addr, dst_addr, totalLength, protICMP, output);
 	//ICMP header
-	output[20] = ICMPtypeTimeExceeded;
-	output[21] = ICMPcodeTimeExceeded;
+	output[20] = timeTypeError;
+	output[21] = timeCodeError;
 	for(int i = 0;i < 6;i++)
 		output[22 + i] = 0x0;
 	//source packet IP header and 8 bytes
@@ -459,10 +459,10 @@ int ICMPDestNetworkUnreachable(in_addr_t src_addr, in_addr_t dst_addr) {
 	uint16_t ICMPLength = 8 + packetHeaderLength + 8;
 	uint16_t totalLength = 20 + ICMPLength;
 	//IP header
-	IPHeader(src_addr, dst_addr, totalLength, protocolICMP, output);
+	IPHeader(src_addr, dst_addr, totalLength, protICMP, output);
 	//ICMP header
-	output[20] = ICMPtypeDestNetworkUnreachable;
-	output[21] = ICMPcodeDestNetworkUnreachable;
+	output[20] = unreachTypeError;
+	output[21] = unreachCodeError;
 	for(int i = 0;i < 6;i++)
 		output[22 + i] = 0x0;
 	//source packet IP header and 8 bytes
@@ -504,7 +504,7 @@ int Response(in_addr_t src_addr, in_addr_t dst_addr, uint8_t* pac) {
 	//total length of IP packet
 	uint16_t totalLength = rip_len + 28;
 	//fill IP header
-	IPHeader(src_addr, dst_addr, totalLength, protocolUDP, pac);
+	IPHeader(src_addr, dst_addr, totalLength, protUDP, pac);
 	//length of UDP packet
 	uint16_t UDPLength = rip_len + 8;
 	pac[24] = UDPLength >> 8;
