@@ -49,7 +49,7 @@ int timeExceed(in_addr_t src_addr, in_addr_t dst_addr);
 int unReachable(in_addr_t src_addr, in_addr_t dst_addr);
 int Response(in_addr_t src_addr, in_addr_t dst_addr, uint8_t* pac);
 uint32_t convertEndianess(uint32_t addr);
-vector<RoutingTableEntry> routers=getRTE();
+vector<RoutingTableEntry> rte=getRTE();
 
 int main(int argc, char *argv[]) {
 	int res = HAL_Init(1, addrs);
@@ -93,17 +93,17 @@ int main(int argc, char *argv[]) {
 				RipPacket resp;
 					resp.command = 2;
 					int cnt = 0;
-				for(int i = 0;i < routers.size();i++){
-					if((convertEndianess(multCast) & 0x00ffffff) != routers.at(i).addr) {
-					printf("fill resp, dst_addr:%08x  addr:%08x\n", convertEndianess(multCast), routers.at(i).addr);
-					resp.entries[cnt].addr = routers.at(i).addr;
-					uint32_t len = routers.at(i).len;
+				for(int i = 0;i < rte.size();i++){
+					if((convertEndianess(multCast) & 0x00ffffff) != rte.at(i).addr) {
+					printf("fill resp, dst_addr:%08x  addr:%08x\n", convertEndianess(multCast), rte.at(i).addr);
+					resp.entries[cnt].addr = rte.at(i).addr;
+					uint32_t len = rte.at(i).len;
 					uint32_t mask = 0;
 					for(int j = 0;j < len;j++)
 						mask = (mask << 1) + 0x1;// big endian
 					resp.entries[cnt].mask = mask;
-					resp.entries[cnt].nexthop = routers.at(i).nexthop;
-					resp.entries[cnt].metric = routers.at(i).metric;//not sure
+					resp.entries[cnt].nexthop = rte.at(i).nexthop;
+					resp.entries[cnt].metric = rte.at(i).metric;//not sure
 					cnt++;
 					}
 				}
@@ -261,23 +261,23 @@ int main(int argc, char *argv[]) {
 						// int length = Response(resp_src_addr, src_addr, output);//what if dst_addr is multicast??????
 
 						RipPacket resp;
-									resp.command = 2;
-									int cnt = 0;
-								for(int i = 0;i < routers.size();i++){
-									if((convertEndianess(multCast) & 0x00ffffff) != routers.at(i).addr) {
-									printf("fill resp, dst_addr:%08x  addr:%08x\n", convertEndianess(multCast), routers.at(i).addr);
-									resp.entries[cnt].addr = routers.at(i).addr;
-									uint32_t len = routers.at(i).len;
-									uint32_t mask = 0;
-									for(int j = 0;j < len;j++)
-										mask = (mask << 1) + 0x1;// big endian
-									resp.entries[cnt].mask = mask;
-									resp.entries[cnt].nexthop = routers.at(i).nexthop;
-									resp.entries[cnt].metric = routers.at(i).metric;//not sure
-									cnt++;
-									}
-								}
-								resp.numEntries = cnt;
+							resp.command = 2;
+							int cnt = 0;
+						for(int i = 0;i < rte.size();i++){
+							if((convertEndianess(multCast) & 0x00ffffff) != rte.at(i).addr) {
+							printf("fill resp, dst_addr:%08x  addr:%08x\n", convertEndianess(multCast), rte.at(i).addr);
+							resp.entries[cnt].addr = rte.at(i).addr;
+							uint32_t len = rte.at(i).len;
+							uint32_t mask = 0;
+							for(int j = 0;j < len;j++)
+								mask = (mask << 1) + 0x1;// big endian
+							resp.entries[cnt].mask = mask;
+							resp.entries[cnt].nexthop = rte.at(i).nexthop;
+							resp.entries[cnt].metric = rte.at(i).metric;//not sure
+							cnt++;
+							}
+						}
+						resp.numEntries = cnt;
 							// UDP
 							// port = 520
 							// source port
@@ -379,7 +379,7 @@ int main(int argc, char *argv[]) {
 							if(index >= 0) {
 								//exist
 								printf("update, exist\n");
-								if(RTEntry.metric + 1 < routers.at(index).metric) {
+								if(RTEntry.metric + 1 < rte.at(index).metric) {
 								printf("update, newMetric < metric\n");
 								RTEntry.metric++;
 								update(true, RTEntry);
