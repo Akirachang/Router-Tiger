@@ -49,7 +49,7 @@ uint32_t convertEndianess(uint32_t addr) {
 			((addr & 0xff000000) >> 24);
 }
 
-uint32_t toMask(uinnt32_t len){
+uint32_t toMask(uint32_t len){
 	uint32_t m = 0;
 	for(int j = 0;j<len;j++)
 		m = (m << 1) + 0x1;
