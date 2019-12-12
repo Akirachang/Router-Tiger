@@ -29,6 +29,7 @@ extern void updateTable(RipEntry entry, uint32_t if_index);
 extern void DEBUG_printRouterTable();
 extern int getIndex(uint32_t addr, uint32_t len);
 extern int csUDP(uint8_t* pac);
+extern int csIP(uint8_t* pac);
 extern vector<RoutingTableEntry> getRTE();
 
 
@@ -43,7 +44,6 @@ in_addr_t addrs[N_IFACE_ON_BOARD] = {0x0203a8c0, 0x0104a8c0, 0x0102000a, 0x01030
 
 macaddr_t MulticastMac = {0x01, 0x00, 0x5e, 0x00, 0x00, 0x09}; //idk big endian or ... fuck
 
-void getIPChecksum(uint8_t* pac);
 void IPHeader(in_addr_t src_addr, in_addr_t dst_addr, uint16_t totalLength, uint8_t protocol, uint8_t* pac);
 int timeExceed(in_addr_t src_addr, in_addr_t dst_addr);
 int unReachable(in_addr_t src_addr, in_addr_t dst_addr);
@@ -467,26 +467,6 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-void getIPChecksum(uint8_t* pac) {
-	int IPchecksum = 0;
-	int headLength = (pac[0] & 0xf) * 4;
-	pac[10] = 0;
-	pac[11] = 0;
-	for(int i = 0;i < headLength;i++) {
-	if(i % 2 == 0) {
-		IPchecksum += ((int)pac[i]) << 8;
-	} else {
-		IPchecksum += (int)pac[i];
-	}
-	}
-	IPchecksum = (IPchecksum >> 16) + (IPchecksum & 0xffff);
-	IPchecksum += (IPchecksum >> 16);
-	IPchecksum = ~IPchecksum;
-	pac[10] = IPchecksum >> 8;
-	pac[11] = IPchecksum;
-}
-
-
 void IPHeader(in_addr_t src_addr, in_addr_t dst_addr, uint16_t totalLength, uint8_t protocol, uint8_t* pac) {
 	//this function fill a IP header 
 	//version = 4, header length = 5
@@ -516,7 +496,7 @@ void IPHeader(in_addr_t src_addr, in_addr_t dst_addr, uint16_t totalLength, uint
 	pac[17] = dst_addr >> 16;
 	pac[18] = dst_addr >> 8;
 	pac[19] = dst_addr;
-	getIPChecksum(pac);
+	csIP(pac);
 }
 
 

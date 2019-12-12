@@ -54,3 +54,22 @@ int csUDP(uint8_t* pac) {
 	UDPchecksum = ~UDPchecksum;
 	return UDPchecksum;
 }
+
+void csIP(uint8_t* pac) {
+	int IPchecksum = 0;
+	int headLength = (pac[0] & 0xf) * 4;
+	pac[10] = 0;
+	pac[11] = 0;
+	for(int i = 0;i < headLength;i++) {
+	if(i % 2 == 0) {
+		IPchecksum += ((int)pac[i]) << 8;
+	} else {
+		IPchecksum += (int)pac[i];
+	}
+	}
+	IPchecksum = (IPchecksum >> 16) + (IPchecksum & 0xffff);
+	IPchecksum += (IPchecksum >> 16);
+	IPchecksum = ~IPchecksum;
+	pac[10] = IPchecksum >> 8;
+	pac[11] = IPchecksum;
+}
