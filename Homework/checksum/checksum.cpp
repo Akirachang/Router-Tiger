@@ -28,7 +28,7 @@ bool validateIPChecksum(uint8_t *packet, size_t len) {
   return false;
 }
 
-int getUDPChecksum(uint8_t* pac) {
+int csUDP(uint8_t* pac) {
 	return 0;////fuck UDP checksum
 	int UDPchecksum = 0;
 	uint16_t UDPLength = (((int)pac[24]) << 8) + pac[25];

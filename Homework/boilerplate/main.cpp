@@ -27,7 +27,7 @@ extern void fillResp(RipPacket* resp, uint32_t dst_addr);
 extern void updateRouterTable(RipEntry entry, uint32_t if_index);
 extern void DEBUG_printRouterTable();
 extern int getIndex(uint32_t addr, uint32_t len);
-extern int getUDPChecksum(uint8_t* pac);
+extern int csUDP(uint8_t* pac);
 
 
 uint8_t packet[2048];
@@ -484,7 +484,7 @@ int Response(in_addr_t src_addr, in_addr_t dst_addr, uint8_t* pac) {
 	pac[25] = UDPLength;
 	// checksum calculation for ip and udp <---- IP checksum already calculated before
 	//UDP checksum
-	int UDPchecksum = getUDPChecksum(output);
+	int UDPchecksum = csUDP(output);
 	pac[26] = UDPchecksum >> 8;
 	pac[27] = UDPchecksum;
 	return (int)totalLength;
