@@ -227,7 +227,6 @@ int main(int argc, char *argv[]) {
 					}
 				}
 				resp.numEntries = cnt;
-
 					// UDP
 					// port = 520
 					// source port
@@ -261,7 +260,7 @@ int main(int argc, char *argv[]) {
 						output[9] = protUDP;
 						//SRC ADDRESS
 						output[12] = convertEndianess(addrs[i]) >> 24;
-						output[13] = convertEndianess(addrs[i])>> 16;
+						output[13] = convertEndianess(addrs[i]) >> 16;
 						output[14] = convertEndianess(addrs[i]) >> 8;
 						output[15] = convertEndianess(addrs[i]);
 						//DEST ADDRESS
@@ -274,8 +273,7 @@ int main(int argc, char *argv[]) {
 					uint16_t udplen = rip_len + 8;
 					output[24] = udplen >> 8;
 					output[25] = udplen;
-					// checksum calculation for ip and udp <---- IP checksum already calculated before
-					//UDP checksum
+					
 					int udpcs = csUDP(output);
 					output[26] = udpcs >> 8;
 					output[27] = udpcs;
@@ -293,38 +291,30 @@ int main(int argc, char *argv[]) {
 		res = HAL_ReceiveIPPacket(mask, packet, sizeof(packet), src_mac,
 										dst_mac, 1000, &if_index);
 		if (res == HAL_ERR_EOF) {
-			
 			break;
 		} else if (res < 0) {
-			
 			return res;
 		} else if (res == 0) {
 			// Timeout
-			
 			continue;
 		} else if (res > sizeof(packet)) {
 			// packet is truncated, ignore it
-			
 			continue;
 		}
-		// res > 0
 		uint8_t version = packet[0] >> 4;
 		if(version != 4 && version != 6) {
 			printf("Invalid version\n");
 			continue;
 		}
-
 		uint8_t TTL = packet[8];
 		if(TTL <= 0) {
 			printf("Invalid TTL\n");
 			continue;
 		}
-
 		if (!validateIPChecksum(packet, res)) {
 			printf("Invalid IP Checksum\n");
 			continue;
 		}
-
 
 		in_addr_t src_addr, dst_addr;
 		// extract src_addr and dst_addr from packet
@@ -332,17 +322,17 @@ int main(int argc, char *argv[]) {
 		src_addr = ((int)packet[12] << 24) + ((int)packet[13] << 16) + ((int)packet[14] << 8) + packet[15];
 		dst_addr = ((int)packet[16] << 24) + ((int)packet[17] << 16) + ((int)packet[18] << 8) + packet[19];
 
-		in_addr_t rev_dst_addr = convertEndianess(dst_addr);
+		in_addr_t flip_dst = convertEndianess(dst_addr);
 
 		bool dst_is_me = false;
 		for (int i = 0; i < N_IFACE_ON_BOARD;i++) {
-			if (memcmp(&rev_dst_addr, &addrs[i], sizeof(in_addr_t)) == 0) {
+			if (memcmp(&flip_dst, &addrs[i], sizeof(in_addr_t)) == 0) {
 				dst_is_me = true;
 				break;
 			}
 		}
 		// TODO: Handle rip multicast address?
-		if(rev_dst_addr == multCast) {
+		if(flip_dst == multCast) {
 			dst_is_me = true;
 		}
 
@@ -359,7 +349,7 @@ int main(int argc, char *argv[]) {
 					if(rip.numEntries == 1 && rip.entries[0].metric == 16) {
 						
 						in_addr_t resp_src_addr = dst_addr;
-						if(rev_dst_addr == multCast) {
+						if(flip_dst == multCast) {
 							for(int i = 0;i < N_IFACE_ON_BOARD;i++) {
 								if((addrs[i] & 0x00ffffff) == (convertEndianess(src_addr) & 0x00ffffff)) {
 									resp_src_addr = convertEndianess(addrs[i]);
