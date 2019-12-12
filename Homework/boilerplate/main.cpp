@@ -129,7 +129,38 @@ int main(int argc, char *argv[]) {
 					//total length of IP packet
 					uint16_t totalLength = rip_len + 28;
 					//fill IP header
-					IPHeader( convertEndianess(addrs[i]), convertEndianess(multCast), totalLength, protUDP, output);
+					// IPHeader( convertEndianess(addrs[i]), convertEndianess(multCast), totalLength, protUDP, output);
+
+					//this function fill a IP header 
+						//version = 4, header length = 5
+						output[0] = 0x45;
+						//type of service = 0
+						output[1] = 0x00;
+						//total length
+						output[2] = totalLength >> 8;
+						output[3] = totalLength;
+						//id = 0
+						output[4] = 0x00;
+						output[5] = 0x00;
+						//flags = 0, fragmented offset = 0
+						output[6] = 0x00;
+						output[7] = 0x00;
+						//time to live = 1
+						output[8] = 0x01;
+						//protocol = 17(UDP)
+						output[9] = protUDP;
+						//source address = src_addr
+						output[12] = convertEndianess(addrs[i]) >> 24;
+						output[13] = convertEndianess(addrs[i])>> 16;
+						output[14] = convertEndianess(addrs[i]) >> 8;
+						output[15] = convertEndianess(addrs[i]);
+						//destination address = dst_addr
+						output[16] = convertEndianess(multCast) >> 24;
+						output[17] = convertEndianess(multCast) >> 16;
+						output[18] = convertEndianess(multCast) >> 8;
+						output[19] = convertEndianess(multCast);
+						csIP(output);
+
 					//length of UDP packet
 					uint16_t UDPLength = rip_len + 8;
 					output[24] = UDPLength >> 8;
