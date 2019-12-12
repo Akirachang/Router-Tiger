@@ -25,7 +25,6 @@ extern bool query(uint32_t addr, uint32_t *nexthop, uint32_t *if_index);
 extern bool forward(uint8_t *packet, size_t len);
 extern bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output);
 extern uint32_t assemble(const RipPacket *rip, uint8_t *buffer);
-extern void fillResp(RipPacket* resp, uint32_t dst_addr);
 extern void updateRouterTable(RipEntry entry, uint32_t if_index);
 extern void DEBUG_printRouterTable();
 extern int getIndex(uint32_t addr, uint32_t len);
@@ -50,6 +49,7 @@ int timeExceed(in_addr_t src_addr, in_addr_t dst_addr);
 int unReachable(in_addr_t src_addr, in_addr_t dst_addr);
 int Response(in_addr_t src_addr, in_addr_t dst_addr, uint8_t* pac);
 uint32_t convertEndianess(uint32_t addr);
+vector<RoutingTableEntry> routers=getRTE();
 
 int main(int argc, char *argv[]) {
 	int res = HAL_Init(1, addrs);
@@ -92,9 +92,7 @@ int main(int argc, char *argv[]) {
 				#endif
 				vector<RoutingTableEntry> routers;
 				routers=getRTE();
-				// int length = Response(convertEndianess(addrs[i]), convertEndianess(multCast), output);
 				RipPacket resp;
-					// fillResp(&resp, convertEndianess(multCast));
 					resp.command = 2;
 					int cnt = 0;
 				for(int i = 0;i < routers.size();i++){
@@ -265,10 +263,6 @@ int main(int argc, char *argv[]) {
 						// int length = Response(resp_src_addr, src_addr, output);//what if dst_addr is multicast??????
 
 						RipPacket resp;
-							// fillResp(&resp, convertEndianess(multCast));
-							vector<RoutingTableEntry> routers;
-								routers=getRTE();
-								// int length = Response(convertEndianess(addrs[i]), convertEndianess(multCast), output);
 									resp.command = 2;
 									int cnt = 0;
 								for(int i = 0;i < routers.size();i++){
@@ -367,7 +361,39 @@ int main(int argc, char *argv[]) {
 									printf("processing response, next hop == 0, new next hop = %08x\n", entry.nexthop);
 								#endif
 							}
-							updateRouterTable(entry, if_index);
+							// updateRouterTable(entry, if_index);
+							RoutingTableEntry RTEntry;
+							RTEntry.addr = entry.addr;
+							RTEntry.nexthop = entry.nexthop;
+							uint32_t mask = entry.mask;
+							uint32_t len = 0;
+							printf("update, mask:%08x\n", mask);
+							while((mask & 1) != 0) {
+								len++;
+								mask >>= 1;
+							}
+							printf("update, len:%d\n", len);
+							RTEntry.len = len;
+							RTEntry.if_index = if_index;
+							RTEntry.metric = entry.metric;
+
+							int index = getIndex(entry.addr, len);
+							if(index >= 0) {
+								//exist
+								printf("update, exist\n");
+								if(RTEntry.metric + 1 < routers.at(index).metric) {
+								printf("update, newMetric < metric\n");
+								RTEntry.metric++;
+								update(true, RTEntry);
+								}
+							} else {
+								//not exist
+								//but why do not metric add 1 ???
+								printf("update, not exist\n");
+								RTEntry.metric++;
+								update(true, RTEntry);
+							}
+							
 						}
 					}
 				}

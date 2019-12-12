@@ -109,26 +109,6 @@ bool query(uint32_t addr, uint32_t *nexthop, uint32_t *if_index) {
   return true;
 }
 
-void fillResp(RipPacket *resp, uint32_t dst_addr) {
-  resp->command = 2;
-  int cnt = 0;
-  for(int i = 0;i < routers.size();i++){
-    if((dst_addr & 0x00ffffff) != routers.at(i).addr) {
-      printf("fill resp, dst_addr:%08x  addr:%08x\n", dst_addr, routers.at(i).addr);
-      resp->entries[cnt].addr = routers.at(i).addr;
-      uint32_t len = routers.at(i).len;
-      uint32_t mask = 0;
-      for(int j = 0;j < len;j++)
-        mask = (mask << 1) + 0x1;// big endian
-      resp->entries[cnt].mask = mask;
-      resp->entries[cnt].nexthop = routers.at(i).nexthop;
-      resp->entries[cnt].metric = routers.at(i).metric;//not sure
-      cnt++;
-    }
-  }
-  resp->numEntries = cnt;
-}
-
 void updateRouterTable(RipEntry entry, uint32_t if_index) {
   RoutingTableEntry RTEntry;
   RTEntry.addr = entry.addr;
