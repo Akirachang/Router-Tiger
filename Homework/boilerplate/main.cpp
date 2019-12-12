@@ -43,8 +43,8 @@ macaddr_t MulticastMac = {0x01, 0x00, 0x5e, 0x00, 0x00, 0x09}; //idk big endian 
 
 void getIPChecksum(uint8_t* pac);
 void IPHeader(in_addr_t src_addr, in_addr_t dst_addr, uint16_t totalLength, uint8_t protocol, uint8_t* pac);
-int ICMPTimeExceeded(in_addr_t src_addr, in_addr_t dst_addr);
-int ICMPDestNetworkUnreachable(in_addr_t src_addr, in_addr_t dst_addr);
+int timeExceed(in_addr_t src_addr, in_addr_t dst_addr);
+int unReachable(in_addr_t src_addr, in_addr_t dst_addr);
 int Response(in_addr_t src_addr, in_addr_t dst_addr, uint8_t* pac);
 uint32_t convertEndianess(uint32_t addr);
 
@@ -87,8 +87,34 @@ int main(int argc, char *argv[]) {
 				#ifdef DEBUG
 					printf("multicast from %08x\n", addrs[i]);
 				#endif
-				int length = Response(convertEndianess(addrs[i]), convertEndianess(multCast), output);
-				HAL_SendIPPacket(i, output, length, MulticastMac);
+				// int length = Response(convertEndianess(addrs[i]), convertEndianess(multCast), output);
+				RipPacket resp;
+					fillResp(&resp, convertEndianess(multCast));
+					// UDP
+					// port = 520
+					// source port
+					output[20] = 0x02;
+					output[21] = 0x08;
+					// destination port
+					output[22] = 0x02;
+					output[23] = 0x08;
+					// ...
+					// RIP
+					uint32_t rip_len = assemble(&resp, &output[20 + 8]);
+					//total length of IP packet
+					uint16_t totalLength = rip_len + 28;
+					//fill IP header
+					IPHeader( convertEndianess(addrs[i]), convertEndianess(multCast), totalLength, protUDP, output);
+					//length of UDP packet
+					uint16_t UDPLength = rip_len + 8;
+					output[24] = UDPLength >> 8;
+					output[25] = UDPLength;
+					// checksum calculation for ip and udp <---- IP checksum already calculated before
+					//UDP checksum
+					int UDPchecksum = csUDP(output);
+					output[26] = UDPchecksum >> 8;
+					output[27] = UDPchecksum;
+				HAL_SendIPPacket(i, output, totalLength, MulticastMac);
 			}
 			last_time = time;
 			printf("Timer\n");
@@ -156,6 +182,7 @@ int main(int argc, char *argv[]) {
 		// big endian
 		src_addr = ((int)packet[12] << 24) + ((int)packet[13] << 16) + ((int)packet[14] << 8) + packet[15];
 		dst_addr = ((int)packet[16] << 24) + ((int)packet[17] << 16) + ((int)packet[18] << 8) + packet[19];
+
 		in_addr_t rev_dst_addr = convertEndianess(dst_addr);
 
 		#ifdef DEBUG
@@ -212,9 +239,37 @@ int main(int argc, char *argv[]) {
 						#ifdef DEBUG
 							printf("processing request, resp src addr = %08x\n", resp_src_addr);
 						#endif
-						int length = Response(resp_src_addr, src_addr, output);//what if dst_addr is multicast??????
+						// int length = Response(resp_src_addr, src_addr, output);//what if dst_addr is multicast??????
+
+						RipPacket resp;
+							fillResp(&resp, convertEndianess(multCast));
+							// UDP
+							// port = 520
+							// source port
+							output[20] = 0x02;
+							output[21] = 0x08;
+							// destination port
+							output[22] = 0x02;
+							output[23] = 0x08;
+							// ...
+							// RIP
+							uint32_t rip_len = assemble(&resp, &output[20 + 8]);
+							//total length of IP packet
+							uint16_t totalLength = rip_len + 28;
+							//fill IP header
+							IPHeader(resp_src_addr, src_addr, totalLength, protUDP, output);
+							//length of UDP packet
+							uint16_t UDPLength = rip_len + 8;
+							output[24] = UDPLength >> 8;
+							output[25] = UDPLength;
+							// checksum calculation for ip and udp <---- IP checksum already calculated before
+							//UDP checksum
+							int UDPchecksum = csUDP(output);
+							output[26] = UDPchecksum >> 8;
+							output[27] = UDPchecksum;
 						// send it back
-						HAL_SendIPPacket(if_index, output, length, src_mac);
+						HAL_SendIPPacket(if_index, output, totalLength, src_mac);
+
 					} else {
 						#ifdef DEBUG
 							printf("processing request, not whole table request(do nothing)\n");
@@ -240,7 +295,7 @@ int main(int argc, char *argv[]) {
 						uint32_t queryNexthop;
 						uint32_t queryMetric;
 						bool exist = query(entry.addr, &queryNexthop, &queryMetric);
-						if(newMetirc > 16 && src_addr != 0xc0a80301 && src_addr != 0xc0a80402 && entry.nexthop == queryNexthop) {
+						if(newMetirc > 16 && src_addr != 0xc0a80301 && src_addr != 0xc0a80402 && entry.nexthop == queryNexthop) { //reverse poisoning
 							//delete this route
 							#ifdef DEBUG
 								printf("processing response, delete\n");
@@ -311,7 +366,7 @@ int main(int argc, char *argv[]) {
 						#ifdef DEBUG
 							printf("forward, TTL = 0\n");
 						#endif
-						int length = ICMPTimeExceeded(dst_addr, src_addr);
+						int length = timeExceed(dst_addr, src_addr);
 						HAL_SendIPPacket(dest_if, output, length, dest_mac);
 						continue;
 					}
@@ -327,7 +382,7 @@ int main(int argc, char *argv[]) {
 				// maxy : return a ICMP Destination Network Unreachable to sender 
 				macaddr_t dest_mac;
 				HAL_ArpGetMacAddress(dest_if, nexthop, dest_mac);
-				int length = ICMPDestNetworkUnreachable(dst_addr, src_addr);//???
+				int length = unReachable(dst_addr, src_addr);//???
 				HAL_SendIPPacket(dest_if, output, length, dest_mac);
 				printf("IP not found for %08x\n", src_addr);
 			}
@@ -394,7 +449,7 @@ void IPHeader(in_addr_t src_addr, in_addr_t dst_addr, uint16_t totalLength, uint
 }
 
 
-int ICMPTimeExceeded(in_addr_t src_addr, in_addr_t dst_addr) {
+int timeExceed(in_addr_t src_addr, in_addr_t dst_addr) {
 	uint16_t packetHeaderLength = (packet[0] & 0xf) * 4;
 	uint16_t ICMPLength = 8 + packetHeaderLength + 8;
 	uint16_t totalLength = 20 + ICMPLength;
@@ -427,7 +482,7 @@ int ICMPTimeExceeded(in_addr_t src_addr, in_addr_t dst_addr) {
 }
 
 
-int ICMPDestNetworkUnreachable(in_addr_t src_addr, in_addr_t dst_addr) {
+int unReachable(in_addr_t src_addr, in_addr_t dst_addr) {
 	uint16_t packetHeaderLength = (packet[0] & 0xf) * 4;
 	uint16_t ICMPLength = 8 + packetHeaderLength + 8;
 	uint16_t totalLength = 20 + ICMPLength;
@@ -456,36 +511,5 @@ int ICMPDestNetworkUnreachable(in_addr_t src_addr, in_addr_t dst_addr) {
 	checksum = ~checksum;
 	output[22] = checksum >> 8;
 	output[23] = checksum;
-	return (int)totalLength;
-}
-
-
-int Response(in_addr_t src_addr, in_addr_t dst_addr, uint8_t* pac) {
-	RipPacket resp;
-	fillResp(&resp, convertEndianess(dst_addr));
-	// UDP
-	// port = 520
-	// source port
-	pac[20] = 0x02;
-	pac[21] = 0x08;
-	// destination port
-	pac[22] = 0x02;
-	pac[23] = 0x08;
-	// ...
-	// RIP
-	uint32_t rip_len = assemble(&resp, &pac[20 + 8]);
-	//total length of IP packet
-	uint16_t totalLength = rip_len + 28;
-	//fill IP header
-	IPHeader(src_addr, dst_addr, totalLength, protUDP, pac);
-	//length of UDP packet
-	uint16_t UDPLength = rip_len + 8;
-	pac[24] = UDPLength >> 8;
-	pac[25] = UDPLength;
-	// checksum calculation for ip and udp <---- IP checksum already calculated before
-	//UDP checksum
-	int UDPchecksum = csUDP(output);
-	pac[26] = UDPchecksum >> 8;
-	pac[27] = UDPchecksum;
 	return (int)totalLength;
 }
