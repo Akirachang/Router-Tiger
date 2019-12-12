@@ -49,6 +49,13 @@ uint32_t convertEndianess(uint32_t addr) {
 			((addr & 0xff000000) >> 24);
 }
 
+uint32_t toMask(uinnt32_t len){
+	uint32_t m = 0;
+	for(int j = 0;j<len;j++)
+		m = (m << 1) + 0x1;
+	return m;
+}
+
 int timeExceed(in_addr_t src_addr, in_addr_t dst_addr) {
 	uint16_t packetHeaderLength = (packet[0] & 0xf) * 4;
 	uint16_t ICMPLength = 8 + packetHeaderLength + 8;
@@ -369,8 +376,7 @@ int main(int argc, char *argv[]) {
 								resp.entries[count].addr = RTE.at(i).addr;
 								uint32_t len = RTE.at(i).len;
 								uint32_t mask = 0;
-								for(int j = 0;j < len;j++)
-									mask = (mask << 1) + 0x1;// big endian
+								mask=toMask(len);
 								resp.entries[count].mask = mask;
 								resp.entries[count].nexthop = RTE.at(i).nexthop;
 								resp.entries[count].metric = RTE.at(i).metric;//not sure
