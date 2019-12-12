@@ -286,11 +286,8 @@ int main(int argc, char *argv[]) {
 					output[27] = udpcs;
 				HAL_SendIPPacket(i, output, totalLength, MulticastMac);
 			}
-			last_time = time;
-			printf("Timer\n");
-			
-		}
-
+			last_time = time;			
+	}
 		int mask = (1 << N_IFACE_ON_BOARD) - 1;
 		macaddr_t src_mac;
 		macaddr_t dst_mac;
@@ -308,21 +305,16 @@ int main(int argc, char *argv[]) {
 			// packet is truncated, ignore it
 			continue;
 		}
-		uint8_t version = packet[0] >> 4;
-		if(version != 4 && version != 6) {
-			printf("Invalid version\n");
+		uint8_t v = packet[0] >> 4;
+		if(v != 4 && v != 6) { //VERSION VALIDIFICATION
 			continue;
 		}
-		uint8_t TTL = packet[8];
-		if(TTL <= 0) {
-			printf("Invalid TTL\n");
+		if(packet[8] <= 0) { //TTL VALIDIFICATION
 			continue;
 		}
 		if (!validateIPChecksum(packet, res)) {
-			printf("Invalid IP Checksum\n");
 			continue;
 		}
-
 		in_addr_t src_addr, dst_addr;
 		// extract src_addr and dst_addr from packet
 		// big endian
@@ -365,12 +357,11 @@ int main(int argc, char *argv[]) {
 						}
 					}
 				}
-
 				RipPacket resp;
 					vector<RoutingTableEntry> RTE;
 						RTE=getRTE();
-							resp.command = 2;
-							int count = 0;
+						int count = 0;
+						resp.command = 2;
 						for(int i = 0;i < RTE.size();i++){
 							if((convertEndianess(multCast) & 0x00ffffff) != RTE.at(i).addr) {
 								resp.entries[count].addr = RTE.at(i).addr;
@@ -379,7 +370,7 @@ int main(int argc, char *argv[]) {
 								mask=toMask(len);
 								resp.entries[count].mask = mask;
 								resp.entries[count].nexthop = RTE.at(i).nexthop;
-								resp.entries[count].metric = RTE.at(i).metric;//not sure
+								resp.entries[count].metric = RTE.at(i).metric;
 								count++;
 							}
 						}
@@ -395,48 +386,46 @@ int main(int argc, char *argv[]) {
 							// ...
 							// RIP
 							uint32_t rip_len = assemble(&resp, &output[20 + 8]);
-							//total length of IP packet
+							//TOTAL LENGTH
 							uint16_t totalLength = rip_len + 28;
-							//fill IP header
-							//this function fill a IP header 
-							//version = 4, header length = 5
+							//IP header
+							//VERSION
 							output[0] = 0x45;
-							//type of service = 0
+							//TOS = 0
 							output[1] = 0x00;
-							//total length
+							//TOTAL LENGTH
 							output[2] = totalLength >> 8;
 							output[3] = totalLength;
-							//id = 0
+							//IDENTIFIER
 							output[4] = 0x00;
 							output[5] = 0x00;
-							//flags = 0, fragmented offset = 0
+							//FLAG
 							output[6] = 0x00;
 							output[7] = 0x00;
-							//time to live = 1
+							//TTL
 							output[8] = 0x01;
-							//protocol = 17(UDP)
+							//PROTOCOL
 							output[9] = protUDP;
-							//source address = src_addr
+							//SRC ADDR
 							output[12] = src_addr >> 24;
 							output[13] = src_addr >> 16;
 							output[14] = src_addr >> 8;
 							output[15] = src_addr;
-							//destination address = dst_addr
+							//DEST ADDR
 							output[16] = dst_addr >> 24;
 							output[17] = dst_addr >> 16;
 							output[18] = dst_addr >> 8;
 							output[19] = dst_addr;
 							csIP(output);
-							//length of UDP packet
+							//UDP LENGTH
 							uint16_t udplen = rip_len + 8;
 							output[24] = udplen >> 8;
 							output[25] = udplen;
-							// checksum calculation for ip and udp <---- IP checksum already calculated before
-							//UDP checksum
+							//UDP CHECKSUM
 							int udpcs = csUDP(output);
 							output[26] = udpcs >> 8;
 							output[27] = udpcs;
-						// send it back
+
 						HAL_SendIPPacket(if_index, output, totalLength, src_mac);
 
 					} else {
@@ -468,10 +457,10 @@ int main(int argc, char *argv[]) {
 								len--;
 							}
 							RoutingTableEntry RTEntry = {
-								.addr = entry.addr, // big endian
-								.len = len, // small endian
-								.if_index = if_index, // small endian 
-								.nexthop = entry.nexthop, // big endian, means direct
+								.addr = entry.addr, // BIG 
+								.len = len, // SMALL
+								.if_index = if_index, // SMALL
+								.nexthop = entry.nexthop, // BIG
 								.metric = entry.metric
 							};
 							update(false, RTEntry);
@@ -479,7 +468,6 @@ int main(int argc, char *argv[]) {
 							if(entry.nexthop == 0) {
 								entry.nexthop = convertEndianess(src_addr);
 							}
-							//updarte RT
 							vector<RoutingTableEntry> RTE;
 							RTE=getRTE();
 							RoutingTableEntry RTEntry;
@@ -507,8 +495,6 @@ int main(int argc, char *argv[]) {
 								update(true, RTEntry);
 								}
 							} else {
-								//not exist
-								//but why do not metric add 1 ???
 								printf("update, not exist\n");
 								RTEntry.metric++;
 								update(true, RTEntry);
@@ -519,7 +505,8 @@ int main(int argc, char *argv[]) {
 			} else {
 				//DISASSEMBLE FAILED
 			} 
-		} else { //dst_is_me
+		} else { 
+			//dst_is_me
 			// 3b.1 dst is not me
 			// forward
 			// beware of endianness
