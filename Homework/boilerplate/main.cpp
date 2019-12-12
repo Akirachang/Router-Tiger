@@ -269,7 +269,6 @@ int main(int argc, char *argv[]) {
 							vector<RoutingTableEntry> routers;
 								routers=getRTE();
 								// int length = Response(convertEndianess(addrs[i]), convertEndianess(multCast), output);
-								RipPacket resp;
 									resp.command = 2;
 									int cnt = 0;
 								for(int i = 0;i < routers.size();i++){
