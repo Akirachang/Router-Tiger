@@ -569,7 +569,38 @@ int unReachable(in_addr_t src_addr, in_addr_t dst_addr) {
 	uint16_t ICMPLength = 8 + packetHeaderLength + 8;
 	uint16_t totalLength = 20 + ICMPLength;
 	//IP header
-	IPHeader(src_addr, dst_addr, totalLength, protICMP, output);
+	// IPHeader(src_addr, dst_addr, totalLength, protICMP, output);
+
+	//this function fill a IP header 
+	//version = 4, header length = 5
+	output[0] = 0x45;
+	//type of service = 0
+	output[1] = 0x00;
+	//total length
+	output[2] = totalLength >> 8;
+	output[3] = totalLength;
+	//id = 0
+	output[4] = 0x00;
+	output[5] = 0x00;
+	//flags = 0, fragmented offset = 0
+	output[6] = 0x00;
+	output[7] = 0x00;
+	//time to live = 1
+	output[8] = 0x01;
+	//protocol = 17(UDP)
+	output[9] = protICMP;
+	//source address = src_addr
+	output[12] = src_addr >> 24;
+	output[13] = src_addr >> 16;
+	output[14] = src_addr >> 8;
+	output[15] = src_addr;
+	//destination address = dst_addr
+	output[16] = dst_addr >> 24;
+	output[17] = dst_addr >> 16;
+	output[18] = dst_addr >> 8;
+	output[19] = dst_addr;
+	csIP(output);
+
 	//ICMP header
 	output[20] = unreachTypeError;
 	output[21] = unreachCodeError;
