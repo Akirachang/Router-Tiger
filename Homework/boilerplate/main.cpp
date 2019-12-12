@@ -50,6 +50,11 @@ int unReachable(in_addr_t src_addr, in_addr_t dst_addr);
 int Response(in_addr_t src_addr, in_addr_t dst_addr, uint8_t* pac);
 uint32_t convertEndianess(uint32_t addr);
 
+
+uint32_t convertEndianess(uint32_t addr) {
+	return ((addr & 0x000000ff) << 24)|((addr & 0x0000ff00) << 8)|((addr & 0x00ff0000) >> 8)|((addr & 0xff000000) >> 24);
+}
+
 int main(int argc, char *argv[]) {
 	int res = HAL_Init(1, addrs);
 	if (res < 0) {
@@ -461,11 +466,6 @@ int main(int argc, char *argv[]) {
 	}
   return 0;
 }
-
-uint32_t convertEndianess(uint32_t addr) {
-	return ((addr & 0x000000ff) << 24) + ((addr & 0x0000ff00) << 8) + ((addr & 0x00ff0000) >> 8) + ((addr & 0xff000000) >> 24);
-}
-
 
 void getIPChecksum(uint8_t* pac) {
 	int IPchecksum = 0;
