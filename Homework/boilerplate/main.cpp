@@ -90,8 +90,6 @@ int main(int argc, char *argv[]) {
 				#ifdef DEBUG
 					printf("multicast from %08x\n", addrs[i]);
 				#endif
-				vector<RoutingTableEntry> routers;
-				routers=getRTE();
 				RipPacket resp;
 					resp.command = 2;
 					int cnt = 0;
