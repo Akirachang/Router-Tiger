@@ -362,8 +362,41 @@ int main(int argc, char *argv[]) {
 									printf("processing response, next hop == 0, new next hop = %08x\n", entry.nexthop);
 								#endif
 							}
-							updateTable(entry, if_index);
-						}
+							//updarte RT
+							vector<RoutingTableEntry> routers;
+							routers=getRTE();
+							RoutingTableEntry RTEntry;
+							RTEntry.addr = entry.addr;
+							RTEntry.nexthop = entry.nexthop;
+							uint32_t mask = entry.mask;
+							uint32_t len = 0;
+							printf("update, mask:%08x\n", mask);
+							while((mask & 1) != 0) {
+								len++;
+								mask >>= 1;
+							}
+							printf("update, len:%d\n", len);
+							RTEntry.len = len;
+							RTEntry.if_index = if_index;
+							RTEntry.metric = entry.metric;
+
+							int index = getIndex(entry.addr, len);
+							if(index >= 0) {
+								//exist
+								printf("update, exist\n");
+								if(RTEntry.metric + 1 < routers.at(index).metric) {
+								printf("update, newMetric < metric\n");
+								RTEntry.metric++;
+								update(true, RTEntry);
+								}
+							} else {
+								//not exist
+								//but why do not metric add 1 ???
+								printf("update, not exist\n");
+								RTEntry.metric++;
+								update(true, RTEntry);
+							}
+  						}
 					}
 				}
 			} else {
