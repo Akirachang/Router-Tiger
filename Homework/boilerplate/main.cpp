@@ -331,7 +331,36 @@ int main(int argc, char *argv[]) {
 							//total length of IP packet
 							uint16_t totalLength = rip_len + 28;
 							//fill IP header
-							IPHeader(resp_src_addr, src_addr, totalLength, protUDP, output);
+							// IPHeader(resp_src_addr, src_addr, totalLength, protUDP, output);
+							//this function fill a IP header 
+							//version = 4, header length = 5
+							output[0] = 0x45;
+							//type of service = 0
+							output[1] = 0x00;
+							//total length
+							output[2] = totalLength >> 8;
+							output[3] = totalLength;
+							//id = 0
+							output[4] = 0x00;
+							output[5] = 0x00;
+							//flags = 0, fragmented offset = 0
+							output[6] = 0x00;
+							output[7] = 0x00;
+							//time to live = 1
+							output[8] = 0x01;
+							//protocol = 17(UDP)
+							output[9] = protUDP;
+							//source address = src_addr
+							output[12] = src_addr >> 24;
+							output[13] = src_addr >> 16;
+							output[14] = src_addr >> 8;
+							output[15] = src_addr;
+							//destination address = dst_addr
+							output[16] = dst_addr >> 24;
+							output[17] = dst_addr >> 16;
+							output[18] = dst_addr >> 8;
+							output[19] = dst_addr;
+							csIP(output);
 							//length of UDP packet
 							uint16_t UDPLength = rip_len + 8;
 							output[24] = UDPLength >> 8;
@@ -496,38 +525,6 @@ int main(int argc, char *argv[]) {
 		}
 	}
   return 0;
-}
-
-void IPHeader(in_addr_t src_addr, in_addr_t dst_addr, uint16_t totalLength, uint8_t protocol, uint8_t* pac) {
-	//this function fill a IP header 
-	//version = 4, header length = 5
-	pac[0] = 0x45;
-	//type of service = 0
-	pac[1] = 0x00;
-	//total length
-	pac[2] = totalLength >> 8;
-	pac[3] = totalLength;
-	//id = 0
-	pac[4] = 0x00;
-	pac[5] = 0x00;
-	//flags = 0, fragmented offset = 0
-	pac[6] = 0x00;
-	pac[7] = 0x00;
-	//time to live = 1
-	pac[8] = 0x01;
-	//protocol = 17(UDP)
-	pac[9] = protocol;
-	//source address = src_addr
-	pac[12] = src_addr >> 24;
-	pac[13] = src_addr >> 16;
-	pac[14] = src_addr >> 8;
-	pac[15] = src_addr;
-	//destination address = dst_addr
-	pac[16] = dst_addr >> 24;
-	pac[17] = dst_addr >> 16;
-	pac[18] = dst_addr >> 8;
-	pac[19] = dst_addr;
-	csIP(pac);
 }
 
 
