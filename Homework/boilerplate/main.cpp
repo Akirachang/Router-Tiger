@@ -44,14 +44,133 @@ in_addr_t addrs[N_IFACE_ON_BOARD] = {0x0203a8c0, 0x0104a8c0, 0x0102000a, 0x01030
 
 macaddr_t MulticastMac = {0x01, 0x00, 0x5e, 0x00, 0x00, 0x09}; //idk big endian or ... fuck
 
-int timeExceed(in_addr_t src_addr, in_addr_t dst_addr);
-int unReachable(in_addr_t src_addr, in_addr_t dst_addr);
-int Response(in_addr_t src_addr, in_addr_t dst_addr, uint8_t* pac);
-uint32_t convertEndianess(uint32_t addr);
-
-
 uint32_t convertEndianess(uint32_t addr) {
 	return ((addr & 0x000000ff) << 24)|((addr & 0x0000ff00) << 8)|((addr & 0x00ff0000) >> 8)|((addr & 0xff000000) >> 24);
+}
+
+int timeExceed(in_addr_t src_addr, in_addr_t dst_addr) {
+	uint16_t packetHeaderLength = (packet[0] & 0xf) * 4;
+	uint16_t ICMPLength = 8 + packetHeaderLength + 8;
+	uint16_t totalLength = 20 + ICMPLength;
+	//IP header
+
+	//this function fill a IP header 
+	//version = 4, header length = 5
+	output[0] = 0x45;
+	//type of service = 0
+	output[1] = 0x00;
+	//total length
+	output[2] = totalLength >> 8;
+	output[3] = totalLength;
+	//id = 0
+	output[4] = 0x00;
+	output[5] = 0x00;
+	//flags = 0, fragmented offset = 0
+	output[6] = 0x00;
+	output[7] = 0x00;
+	//time to live = 1
+	output[8] = 0x01;
+	//protocol = 17(UDP)
+	output[9] = protICMP;
+	//source address = src_addr
+	output[12] = src_addr >> 24;
+	output[13] = src_addr >> 16;
+	output[14] = src_addr >> 8;
+	output[15] = src_addr;
+	//destination address = dst_addr
+	output[16] = dst_addr >> 24;
+	output[17] = dst_addr >> 16;
+	output[18] = dst_addr >> 8;
+	output[19] = dst_addr;
+	csIP(output);
+
+	//ICMP header
+	output[20] = timeTypeError;
+	output[21] = timeCodeError;
+	for(int i = 0;i < 6;i++)
+		output[22 + i] = 0x0;
+	//source packet IP header and 8 bytes
+	memcpy(output + 20 + 8, packet, size_t(packetHeaderLength));
+
+	output[22] = 0;
+	output[23] = 0;
+	int checksum = 0;
+	for(int i = 0; i < ICMPLength;i++) {
+		if(i % 2 == 0) {
+			checksum += ((int)output[20 + i]) << 8;
+		} else {
+			checksum += (int)output[20 + i];
+		}
+	}
+	checksum = (checksum >> 16) + (checksum & 0xffff);
+	checksum += (checksum >> 16);
+	checksum = ~checksum;
+	output[22] = checksum >> 8;
+	output[23] = checksum;
+	return (int)totalLength;
+}
+
+
+int unReachable(in_addr_t src_addr, in_addr_t dst_addr) {
+	uint16_t packetHeaderLength = (packet[0] & 0xf) * 4;
+	uint16_t ICMPLength = 8 + packetHeaderLength + 8;
+	uint16_t totalLength = 20 + ICMPLength;
+	//IP header
+
+	//this function fill a IP header 
+	//version = 4, header length = 5
+	output[0] = 0x45;
+	//type of service = 0
+	output[1] = 0x00;
+	//total length
+	output[2] = totalLength >> 8;
+	output[3] = totalLength;
+	//id = 0
+	output[4] = 0x00;
+	output[5] = 0x00;
+	//flags = 0, fragmented offset = 0
+	output[6] = 0x00;
+	output[7] = 0x00;
+	//time to live = 1
+	output[8] = 0x01;
+	//protocol = 17(UDP)
+	output[9] = protICMP;
+	//source address = src_addr
+	output[12] = src_addr >> 24;
+	output[13] = src_addr >> 16;
+	output[14] = src_addr >> 8;
+	output[15] = src_addr;
+	//destination address = dst_addr
+	output[16] = dst_addr >> 24;
+	output[17] = dst_addr >> 16;
+	output[18] = dst_addr >> 8;
+	output[19] = dst_addr;
+	csIP(output);
+
+	//ICMP header
+	output[20] = unreachTypeError;
+	output[21] = unreachCodeError;
+	for(int i = 0;i < 6;i++)
+		output[22 + i] = 0x0;
+	//source packet IP header and 8 bytes
+	memcpy(output + 20 + 8, packet, size_t(packetHeaderLength));
+
+	output[22] = 0;
+	output[23] = 0;
+	int checksum = 0;
+	for(int i = 0; i < ICMPLength;i++) {
+		if(i % 2 == 0) {
+			checksum += ((int)output[20 + i]) << 8;
+		} else {
+			checksum += (int)output[20 + i];
+		}
+	}
+	checksum = (checksum >> 16) + (checksum & 0xffff);
+	checksum += (checksum >> 16);
+	checksum = ~checksum;
+	output[22] = checksum >> 8;
+	output[23] = checksum;
+	return (int)totalLength;
 }
 
 int main(int argc, char *argv[]) {
@@ -293,7 +412,6 @@ int main(int argc, char *argv[]) {
 						#ifdef DEBUG
 							printf("processing request, resp src addr = %08x\n", resp_src_addr);
 						#endif
-						// int length = Response(resp_src_addr, src_addr, output);//what if dst_addr is multicast??????
 
 						RipPacket resp;
 							vector<RoutingTableEntry> routers;
@@ -522,130 +640,4 @@ int main(int argc, char *argv[]) {
 		}
 	}
   return 0;
-}
-
-
-int timeExceed(in_addr_t src_addr, in_addr_t dst_addr) {
-	uint16_t packetHeaderLength = (packet[0] & 0xf) * 4;
-	uint16_t ICMPLength = 8 + packetHeaderLength + 8;
-	uint16_t totalLength = 20 + ICMPLength;
-	//IP header
-
-	//this function fill a IP header 
-	//version = 4, header length = 5
-	output[0] = 0x45;
-	//type of service = 0
-	output[1] = 0x00;
-	//total length
-	output[2] = totalLength >> 8;
-	output[3] = totalLength;
-	//id = 0
-	output[4] = 0x00;
-	output[5] = 0x00;
-	//flags = 0, fragmented offset = 0
-	output[6] = 0x00;
-	output[7] = 0x00;
-	//time to live = 1
-	output[8] = 0x01;
-	//protocol = 17(UDP)
-	output[9] = protICMP;
-	//source address = src_addr
-	output[12] = src_addr >> 24;
-	output[13] = src_addr >> 16;
-	output[14] = src_addr >> 8;
-	output[15] = src_addr;
-	//destination address = dst_addr
-	output[16] = dst_addr >> 24;
-	output[17] = dst_addr >> 16;
-	output[18] = dst_addr >> 8;
-	output[19] = dst_addr;
-	csIP(output);
-
-	//ICMP header
-	output[20] = timeTypeError;
-	output[21] = timeCodeError;
-	for(int i = 0;i < 6;i++)
-		output[22 + i] = 0x0;
-	//source packet IP header and 8 bytes
-	memcpy(output + 20 + 8, packet, size_t(packetHeaderLength));
-
-	output[22] = 0;
-	output[23] = 0;
-	int checksum = 0;
-	for(int i = 0; i < ICMPLength;i++) {
-		if(i % 2 == 0) {
-			checksum += ((int)output[20 + i]) << 8;
-		} else {
-			checksum += (int)output[20 + i];
-		}
-	}
-	checksum = (checksum >> 16) + (checksum & 0xffff);
-	checksum += (checksum >> 16);
-	checksum = ~checksum;
-	output[22] = checksum >> 8;
-	output[23] = checksum;
-	return (int)totalLength;
-}
-
-
-int unReachable(in_addr_t src_addr, in_addr_t dst_addr) {
-	uint16_t packetHeaderLength = (packet[0] & 0xf) * 4;
-	uint16_t ICMPLength = 8 + packetHeaderLength + 8;
-	uint16_t totalLength = 20 + ICMPLength;
-	//IP header
-
-	//this function fill a IP header 
-	//version = 4, header length = 5
-	output[0] = 0x45;
-	//type of service = 0
-	output[1] = 0x00;
-	//total length
-	output[2] = totalLength >> 8;
-	output[3] = totalLength;
-	//id = 0
-	output[4] = 0x00;
-	output[5] = 0x00;
-	//flags = 0, fragmented offset = 0
-	output[6] = 0x00;
-	output[7] = 0x00;
-	//time to live = 1
-	output[8] = 0x01;
-	//protocol = 17(UDP)
-	output[9] = protICMP;
-	//source address = src_addr
-	output[12] = src_addr >> 24;
-	output[13] = src_addr >> 16;
-	output[14] = src_addr >> 8;
-	output[15] = src_addr;
-	//destination address = dst_addr
-	output[16] = dst_addr >> 24;
-	output[17] = dst_addr >> 16;
-	output[18] = dst_addr >> 8;
-	output[19] = dst_addr;
-	csIP(output);
-
-	//ICMP header
-	output[20] = unreachTypeError;
-	output[21] = unreachCodeError;
-	for(int i = 0;i < 6;i++)
-		output[22 + i] = 0x0;
-	//source packet IP header and 8 bytes
-	memcpy(output + 20 + 8, packet, size_t(packetHeaderLength));
-
-	output[22] = 0;
-	output[23] = 0;
-	int checksum = 0;
-	for(int i = 0; i < ICMPLength;i++) {
-		if(i % 2 == 0) {
-			checksum += ((int)output[20 + i]) << 8;
-		} else {
-			checksum += (int)output[20 + i];
-		}
-	}
-	checksum = (checksum >> 16) + (checksum & 0xffff);
-	checksum += (checksum >> 16);
-	checksum = ~checksum;
-	output[22] = checksum >> 8;
-	output[23] = checksum;
-	return (int)totalLength;
 }
