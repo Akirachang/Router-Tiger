@@ -10,24 +10,43 @@ const uint8_t protUDP=0x11;
 
 bool validateIPChecksum(uint8_t *packet, size_t len) {
   // TODO:
-  int headLength = (int)(packet[0]&0xf) << 2;
-  int i = 0;
-  int sum = 0;
-  unsigned short answer = 0;
-  for(i = 0;i < headLength;i++) {
-    if(i%2 == 0)
-      sum += ((int)packet[i]) << 8;
-    else
-      sum += (int)packet[i];
-  }
-  sum = (sum >> 16) + (sum & 0xffff);
-  sum += (sum >> 16);
-  answer = ~sum;
-  if(answer == 0x0000)
+    
+    int totalLength=(int)(packet[0]&0xf)*4;
+    // printf("length:%d\n",totalLength);
+    int i=0;
+    int sum=0;
+    uint8_t *temp=packet;
+    uint16_t answer=0;
+    for(i=0;i<totalLength;i++) {
+      // printf("%x  ",(int)temp[i]);
+      if(i%2==0) {
+        sum+=((int)temp[i]) << 8;
+      } else {
+        sum+=(int)temp[i];
+      }
+    }
+    // while(totalLength > 1){    
+    //     sum += *temp;
+    //     temp++;
+    //     totalLength --;
+    // }   
+    // if(totalLength == 1){  
+    //    sum += *(unsigned char *)temp;  
+    // }
+    // printf("\nraw answer:%x\n",(int)sum);   
+    sum=(sum>>16)+(sum&0xffff);
+    sum+=(sum>>16);
+    answer=~sum;
+    // printf("\nanswer:%x\n",(int)answer);
+  if(answer == 0x0000){
     return true;
-  return false;
+  }
+  else
+  {
+    return false;
+  }
+  
 }
-
 int csUDP(uint8_t* pac) {
 	return 0;////fuck UDP checksum
 	int UDPchecksum = 0;

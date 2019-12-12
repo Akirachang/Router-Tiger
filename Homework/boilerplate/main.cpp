@@ -45,7 +45,10 @@ in_addr_t addrs[N_IFACE_ON_BOARD] = {0x0203a8c0, 0x0104a8c0, 0x0102000a, 0x01030
 macaddr_t MulticastMac = {0x01, 0x00, 0x5e, 0x00, 0x00, 0x09}; //idk big endian or ... fuck
 
 uint32_t convertEndianess(uint32_t addr) {
-	return ((addr & 0x000000ff) << 24)|((addr & 0x0000ff00) << 8)|((addr & 0x00ff0000) >> 8)|((addr & 0xff000000) >> 24);
+	return ((addr & 0x000000ff) << 24)|
+			((addr & 0x0000ff00) << 8)|
+			((addr & 0x00ff0000) >> 8)|
+			((addr & 0xff000000) >> 24);
 }
 
 int timeExceed(in_addr_t src_addr, in_addr_t dst_addr) {
@@ -630,7 +633,6 @@ int main(int argc, char *argv[]) {
 			} else {
 				// not found
 				// optionally you can send ICMP Host Unreachable
-				// maxy : return a ICMP Destination Network Unreachable to sender 
 				macaddr_t dest_mac;
 				HAL_ArpGetMacAddress(dest_if, nexthop, dest_mac);
 				int length = unReachable(dst_addr, src_addr);//???
