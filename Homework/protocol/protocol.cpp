@@ -59,6 +59,7 @@ bool disassemble(const uint8_t *packet, uint32_t len, RipPacket *output) {
   if(!((packet[28] == 0x02 || packet[28] == 0x01) && packet[29] == 0x02))
     return false;
 
+
   for(int i = 0;i < numofrip;i++){
     int ripnum = i * 20;
     uint16_t afi = ((int)packet[32 + ripnum] << 8) + packet[33 + ripnum];
